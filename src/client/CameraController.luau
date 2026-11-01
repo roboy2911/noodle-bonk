@@ -21,12 +21,16 @@ local FREE_CURSOR_ACTION = "ToggleFreeCursor"
 local CameraController = {}
 
 local cursorToggledFree = false
-local menuOpen = false
+local freeReasons: { [string]: boolean } = {}
 local shakeAmount = 0
 
--- Other UI calls this to free the cursor while it's open.
-function CameraController.setMenuOpen(open: boolean)
-	menuOpen = open
+-- UI calls this to free the cursor while it's open, e.g. ("NoodleMenu", true).
+function CameraController.setCursorFree(reason: string, free: boolean)
+	if free then
+		freeReasons[reason] = true
+	else
+		freeReasons[reason] = nil
+	end
 end
 
 -- Adds a camera shake. Strength around 0.1 (light) to 1 (huge).
@@ -36,7 +40,7 @@ end
 
 function CameraController.isCursorFree(): boolean
 	return cursorToggledFree
-		or menuOpen
+		or next(freeReasons) ~= nil
 		or GuiService.MenuIsOpen
 		or UserInputService:GetFocusedTextBox() ~= nil
 end

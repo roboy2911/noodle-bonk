@@ -18,6 +18,7 @@ local BANNER_TIME = 1.6
 
 local GOT_BONKED_COLOR = Color3.fromRGB(255, 90, 90)
 local DID_BONK_COLOR = Color3.fromRGB(255, 225, 60)
+local ANNOUNCEMENT_COLOR = Color3.fromRGB(120, 220, 255)
 
 local BonkUI = {}
 
@@ -68,7 +69,7 @@ local function build()
 end
 
 -- Big centered text that slams in, then fades. Other UI uses it too (unlocks).
-function BonkUI.showBanner(text: string, color: Color3)
+function BonkUI.showBanner(text: string, color: Color3, duration: number?)
 	bannerToken += 1
 	local token = bannerToken
 
@@ -84,7 +85,7 @@ function BonkUI.showBanner(text: string, color: Color3)
 		Scale = 1,
 	}):Play()
 
-	task.delay(BANNER_TIME, function()
+	task.delay(duration or BANNER_TIME, function()
 		if token ~= bannerToken then
 			return
 		end
@@ -169,6 +170,10 @@ end
 function BonkUI.start()
 	build()
 	Remotes.Bonked.OnClientEvent:Connect(onBonked)
+	Remotes.Announcement.OnClientEvent:Connect(function(text: string, from: string)
+		BonkUI.showBanner(text, ANNOUNCEMENT_COLOR, 5)
+		addFeedEntry(`[ADMIN] {from}: {text}`)
+	end)
 end
 
 return BonkUI

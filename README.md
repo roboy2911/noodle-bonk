@@ -34,6 +34,7 @@ Access to API Services**. Without it the game runs, but progress resets each ses
 | E / ButtonY / on-screen button | Noodle ability |
 | N / NOODLES button | Noodle menu |
 | Ctrl | Free the mouse cursor (also freed automatically in menus and chat) |
+| P / ADMIN button | Admin panel (admins only) |
 
 ## Layout
 
@@ -54,7 +55,8 @@ src/
     NoodleTools         gives out noodle Tools, handles menu picks
     BonkTracker         detects falls, credits bonks, updates stats
     ArenaBuilder        test arena for empty places
-    DummySpawner        practice dummies on server start
+    DummySpawner        practice dummies (on start, and from the admin panel)
+    AdminService        admin access checks and every admin command
   client/               StarterPlayerScripts.Client
     init.client.luau    entry point
     CameraController    always-on shift lock, Ctrl to free cursor, camera shake
@@ -66,6 +68,8 @@ src/
     BonkUI              "BONKED!" banner and kill feed
     Hud                 ability cooldown bar, Soak % over heads, controls hint
     NoodleMenu          noodle picker with unlock progress
+    AdminPanel          admin panel UI
+    AdminMovement       fly and noclip for admins
 ```
 
 ## How a hit works
@@ -115,6 +119,30 @@ Bonks on practice dummies count toward unlocks **only in Studio**
 
 To track a new stat for unlocks, add its name to `Unlocks.STATS`, give it a
 description in `Unlocks.luau`, and call `DataService.increment(player, "Name", 1)`.
+
+## Admin panel
+
+Press **P** or click **ADMIN** (left side of the screen). Admins are:
+
+- the game's owner (or the owner of the group that owns it),
+- anyone whose UserId is in `Config.AdminUserIds`,
+- everyone, when playing in Studio.
+
+The server checks admin status on every command, so the panel can't be
+abused by someone who isn't an admin. Every command is printed in the server
+output.
+
+Pick a player in the list on the left (you're selected by default), then:
+
+| Tab | What's there |
+|---|---|
+| **Player** | Give any noodle (even locked, for this session) · set or add Bonks/Splashes (saved) · reset all their data · kick · ban 1 day / forever · unban by name or UserId · go to them · bring them · reset their character · launch · max Soak · dry off |
+| **Testing** | Toggles for the selected player: unlock all, god mode (can't be hit, falls put you back on the deck), fly (Space up, Q down), noclip, no ability cooldown · set walk speed |
+| **Server** | Spawn/clear dummies · announcement banner for everyone (goes through Roblox's text filter) · soak storm · dry everyone · low gravity · launch everyone · respawn everyone · shut down the server |
+
+Risky buttons (kick, ban, reset data, respawn everyone, shut down) need a
+second click within 3 seconds. Bans use Roblox's ban API, which only works in
+a live game, not in Studio.
 
 ## Tuning tips
 

@@ -154,10 +154,21 @@ end
 
 function DataService.increment(player: Player, stat: string, amount: number)
 	local profile = profiles[player]
+	if profile then
+		DataService.setStat(player, stat, (profile.data.Stats[stat] or 0) + amount)
+	end
+end
+
+function DataService.getStat(player: Player, stat: string): number
+	local profile = profiles[player]
+	return if profile then profile.data.Stats[stat] or 0 else 0
+end
+
+function DataService.setStat(player: Player, stat: string, value: number)
+	local profile = profiles[player]
 	if not profile then
 		return
 	end
-	local value = (profile.data.Stats[stat] or 0) + amount
 	profile.data.Stats[stat] = value
 	player:SetAttribute(Unlocks.statAttribute(stat), value)
 
@@ -168,6 +179,25 @@ function DataService.increment(player: Player, stat: string, amount: number)
 			bonks.Value = value
 		end
 	end
+end
+
+-- Wipes the player's progress back to a fresh start (saved on next save).
+function DataService.reset(player: Player)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	local fresh = defaultData()
+	profile.data.Selected = fresh.Selected
+	for stat, value in fresh.Stats do
+		DataService.setStat(player, stat, value)
+	end
+end
+
+-- Whether this player's data can be saved (false in Studio without API access).
+function DataService.canSave(player: Player): boolean
+	local profile = profiles[player]
+	return profile ~= nil and profile.canSave
 end
 
 function DataService.setSelected(player: Player, noodleId: string)

@@ -57,10 +57,30 @@ local function removeNoodles(container: Instance?)
 	end
 end
 
--- Whether the player has unlocked this noodle.
+-- Whether the player has unlocked this noodle (or an admin gave it to them).
 function NoodleTools.canUse(player: Player, id: string): boolean
 	local def = Noodles[id]
-	return def ~= nil and Unlocks.isUnlocked(def, Unlocks.readStats(player))
+	return def ~= nil and Unlocks.isAvailable(player, def)
+end
+
+-- Walk speed while holding a noodle: an admin override, else the noodle's own.
+function NoodleTools.walkSpeedFor(player: Player, def: NoodleDef): number
+	local override = player:GetAttribute("AdminWalkSpeed")
+	if type(override) == "number" and override > 0 then
+		return override
+	end
+	return def.WalkSpeed or Config.DefaultWalkSpeed
+end
+
+-- Admin: lets the player use this noodle for the session and equips it.
+function NoodleTools.grant(player: Player, id: string)
+	player:SetAttribute(`Granted_{id}`, true)
+	DataService.setSelected(player, id)
+	if player:GetAttribute("Noodle") == id then
+		NoodleTools.give(player)
+	else
+		player:SetAttribute("Noodle", id)
+	end
 end
 
 function NoodleTools.getNoodleDef(player: Player): NoodleDef
@@ -86,10 +106,11 @@ function NoodleTools.give(player: Player)
 	local def = NoodleTools.getNoodleDef(player)
 	local tool = buildTool(def)
 	tool.Equipped:Connect(function()
-		humanoid.WalkSpeed = def.WalkSpeed or Config.DefaultWalkSpeed
+		humanoid.WalkSpeed = NoodleTools.walkSpeedFor(player, def)
 	end)
 	tool.Unequipped:Connect(function()
-		humanoid.WalkSpeed = Config.DefaultWalkSpeed
+		local override = player:GetAttribute("AdminWalkSpeed")
+		humanoid.WalkSpeed = if type(override) == "number" and override > 0 then override else Config.DefaultWalkSpeed
 	end)
 	tool.Parent = backpack
 	humanoid:EquipTool(tool)

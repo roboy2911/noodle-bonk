@@ -82,6 +82,10 @@ function CombatService.isStunned(character: Model): boolean
 end
 
 function CombatService.isProtected(character: Model): boolean
+	local player = Players:GetPlayerFromCharacter(character)
+	if player and player:GetAttribute("AdminGod") then
+		return true
+	end
 	return character:FindFirstChildOfClass("ForceField") ~= nil
 end
 
@@ -392,7 +396,8 @@ local function onUseAbility(player: Player)
 	end
 
 	local now = os.clock()
-	if now - (lastAbility[player] or 0) < (def.AbilityCooldown or 5) * Config.CooldownTolerance then
+	local cooldown = if player:GetAttribute("AdminNoCooldown") then 0 else def.AbilityCooldown or 5
+	if now - (lastAbility[player] or 0) < cooldown * Config.CooldownTolerance then
 		return
 	end
 	lastAbility[player] = now

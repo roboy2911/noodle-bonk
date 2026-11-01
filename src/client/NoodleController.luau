@@ -112,7 +112,8 @@ local function onAbilityAction(_: string, inputState: Enum.UserInputState, _: In
 	end
 
 	local now = os.clock()
-	if now - lastAbility < (def.AbilityCooldown or 5) then
+	local cooldown = if player:GetAttribute("AdminNoCooldown") then 0 else def.AbilityCooldown or 5
+	if now - lastAbility < cooldown then
 		return Enum.ContextActionResult.Sink
 	end
 	lastAbility = now
@@ -126,6 +127,9 @@ function NoodleController.getAbilityState(): (string?, number)
 	local def = currentDef
 	if not def or not def.Ability then
 		return nil, 0
+	end
+	if player:GetAttribute("AdminNoCooldown") then
+		return def.Ability, 1
 	end
 	local cooldown = def.AbilityCooldown or 5
 	return def.Ability, math.clamp((os.clock() - lastAbility) / cooldown, 0, 1)

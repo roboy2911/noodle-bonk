@@ -15,7 +15,8 @@ export type KnockbackInfo = {
 
 local FOLDER_NAME = "NoodleRemotes"
 local EVENT_NAMES =
-	{ "NoodleHit", "UseAbility", "Knockback", "HitConfirm", "Bonked", "SelectNoodle", "AbilityFx" }
+	{ "NoodleHit", "UseAbility", "Knockback", "HitConfirm", "Bonked", "SelectNoodle", "AbilityFx", "Announcement" }
+local FUNCTION_NAMES = { "AdminRequest" }
 
 local folder: Instance
 if RunService:IsServer() then
@@ -28,6 +29,13 @@ if RunService:IsServer() then
 			event.Parent = folder
 		end
 	end
+	for _, name in FUNCTION_NAMES do
+		if not folder:FindFirstChild(name) then
+			local func = Instance.new("RemoteFunction")
+			func.Name = name
+			func.Parent = folder
+		end
+	end
 	folder.Parent = ReplicatedStorage
 else
 	folder = ReplicatedStorage:WaitForChild(FOLDER_NAME)
@@ -35,6 +43,10 @@ end
 
 local function get(name: string): RemoteEvent
 	return folder:WaitForChild(name) :: RemoteEvent
+end
+
+local function getFunction(name: string): RemoteFunction
+	return folder:WaitForChild(name) :: RemoteFunction
 end
 
 return {
@@ -53,4 +65,8 @@ return {
 	SelectNoodle = get("SelectNoodle"),
 	-- server -> all clients: (kind: string, ...) ability visuals, see client/Effects
 	AbilityFx = get("AbilityFx"),
+	-- server -> all clients: (text: string, from: string) filtered admin announcement
+	Announcement = get("Announcement"),
+	-- client -> server: (command: string, args: { [string]: any }) -> (success: boolean, message: string)
+	AdminRequest = getFunction("AdminRequest"),
 }

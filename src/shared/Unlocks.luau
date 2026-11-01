@@ -43,6 +43,15 @@ function Unlocks.isUnlocked(def: NoodleDef, stats: Stats): boolean
 	return (stats[requirement.Stat] or 0) >= requirement.Amount
 end
 
+-- Whether this player may use the noodle right now: earned it, or an admin
+-- unlocked it for them this session (AllUnlocked / Granted_<Id> attributes).
+function Unlocks.isAvailable(player: Player, def: NoodleDef): boolean
+	if player:GetAttribute("AllUnlocked") or player:GetAttribute(`Granted_{def.Id}`) then
+		return true
+	end
+	return Unlocks.isUnlocked(def, Unlocks.readStats(player))
+end
+
 -- 0 to 1 progress toward unlocking.
 function Unlocks.progress(def: NoodleDef, stats: Stats): number
 	local requirement = def.Unlock

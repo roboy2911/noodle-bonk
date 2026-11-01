@@ -96,6 +96,13 @@ local function check(character: Model?)
 	end
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if root and root:IsA("BasePart") and root.Position.Y < Config.KillY then
+		local player = Players:GetPlayerFromCharacter(character)
+		if player and player:GetAttribute("AdminGod") then
+			-- God mode: put them back on the deck instead
+			character:PivotTo(CFrame.new(Config.RescuePosition))
+			combat.clearHits(character)
+			return
+		end
 		bonk(character, root)
 	end
 end

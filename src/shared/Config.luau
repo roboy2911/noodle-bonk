@@ -64,6 +64,11 @@ local Config = {
 	-- Saving
 	AutosaveInterval = 120,
 
+	-- Admins: the game's owner (or group owner) always counts, and everyone
+	-- does in Studio. Add more people's UserIds here.
+	AdminUserIds = {} :: { number },
+	RescuePosition = Vector3.new(0, 6, 0), -- where god-mode players land instead of getting bonked
+
 	-- Placeholder sounds from Roblox's built-in content. Swap in real foam / squeak sounds.
 	Sounds = {
 		Swing = "rbxasset://sounds/swordslash.wav",

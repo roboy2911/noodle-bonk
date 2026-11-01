@@ -235,7 +235,7 @@ local function refresh()
 	local stats = Unlocks.readStats(player)
 	local current = player:GetAttribute("Noodle")
 	for id, card in cards do
-		local unlocked = Unlocks.isUnlocked(card.def, stats)
+		local unlocked = Unlocks.isAvailable(player, card.def)
 		local equipped = unlocked and id == current
 		card.locked = not unlocked
 		card.button.BackgroundColor3 = if unlocked then CARD_COLOR else LOCKED_CARD_COLOR
@@ -377,7 +377,7 @@ end
 
 function NoodleMenu.setOpen(open: boolean)
 	isOpen = open
-	CameraController.setMenuOpen(open)
+	CameraController.setCursorFree("NoodleMenu", open)
 	if open then
 		refresh()
 		panel.Visible = true
@@ -395,17 +395,13 @@ function NoodleMenu.start()
 	refresh()
 	checkNewUnlocks()
 
-	player:GetAttributeChangedSignal("Noodle"):Connect(refresh)
-	player:GetAttributeChangedSignal("DataLoaded"):Connect(function()
-		checkNewUnlocks()
+	-- Stats, admin grants, the equipped noodle and data loading all change attributes
+	player.AttributeChanged:Connect(function(name)
+		if name == "DataLoaded" or string.sub(name, 1, 5) == "Stat_" then
+			checkNewUnlocks()
+		end
 		refresh()
 	end)
-	for _, stat in Unlocks.STATS do
-		player:GetAttributeChangedSignal(Unlocks.statAttribute(stat)):Connect(function()
-			checkNewUnlocks()
-			refresh()
-		end)
-	end
 
 	ContextActionService:BindAction(TOGGLE_ACTION, function(_, inputState)
 		if inputState == Enum.UserInputState.Begin then
