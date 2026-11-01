@@ -12,11 +12,13 @@ local BonkTracker = require(script.BonkTracker)
 local NoodleTools = require(script.NoodleTools)
 local DummySpawner = require(script.DummySpawner)
 local AdminService = require(script.AdminService)
+local Streaks = require(script.Streaks)
 
 Players.RespawnTime = Config.RespawnTime
 
 ArenaBuilder.build()
 DataService.start()
+Streaks.start()
 CombatService.start()
 BonkTracker.start(CombatService)
 NoodleTools.start()

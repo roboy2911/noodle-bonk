@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local Streaks = require(script.Parent.Streaks)
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {
@@ -23,6 +24,11 @@ export type BonkInfo = {
 	victimName: string,
 	noodleId: string?,
 	position: Vector3,
+	attackerStreak: number?, -- attacker's streak after this bonk
+	milestoneTitle: string?, -- e.g. "ON FIRE" when a streak tier was just reached
+	milestoneColor: Color3?,
+	endedStreak: number?, -- the victim's streak this bonk ended (only if big)
+	bonus: number?, -- bonus Bonks for ending it
 }
 
 local BonkTracker = {}
@@ -70,6 +76,8 @@ local function bonk(character: Model, root: BasePart)
 	if victim then
 		DataService.increment(victim, "Splashes", 1)
 	end
+	local streak = Streaks.onBonk(attacker, victim, counts)
+	local milestone = streak and streak.milestone
 
 	local info: BonkInfo = {
 		attacker = attacker,
@@ -77,6 +85,11 @@ local function bonk(character: Model, root: BasePart)
 		victimName = if victim then victim.DisplayName else character.Name,
 		noodleId = record and record.noodleId,
 		position = root.Position,
+		attackerStreak = streak and streak.streak,
+		milestoneTitle = milestone and milestone.Title,
+		milestoneColor = milestone and milestone.Color,
+		endedStreak = streak and streak.ended,
+		bonus = streak and streak.bonus,
 	}
 	Remotes.Bonked:FireAllClients(info)
 

@@ -5,7 +5,8 @@ local Config = {
 	-- Arena
 	KillY = -20, -- falling below this height counts as getting bonked
 	WaterLevel = -30, -- top of the pool water (splash effects appear here)
-	AutoBuildArena = true, -- builds a test pool island if Workspace has no model named "Arena"
+	AutoBuildArena = true, -- builds the pool deck arena if Workspace has no model named "Arena"
+	ArenaDiameter = 330, -- width of the round deck in studs
 	RespawnTime = 2,
 	SpawnProtection = 3, -- seconds of ForceField after spawning (bonking someone ends it early)
 	DefaultWalkSpeed = 16,
@@ -35,6 +36,18 @@ local Config = {
 
 	-- A hit still earns the bonk if the victim falls within this many seconds
 	CreditWindow = 8,
+
+	-- Bonk streaks (bonks in a row without falling in). Reaching a tier makes
+	-- you glow and is announced to everyone. Past the last tier, it's announced
+	-- again every StreakRepeatEvery bonks.
+	StreakTiers = {
+		{ At = 3, Title = "ON FIRE", Color = Color3.fromRGB(255, 150, 40) },
+		{ At = 5, Title = "UNSTOPPABLE", Color = Color3.fromRGB(255, 60, 60) },
+		{ At = 10, Title = "LEGENDARY", Color = Color3.fromRGB(190, 90, 255) },
+	},
+	StreakRepeatEvery = 5,
+	StreakEndMinimum = 3, -- ending a streak at least this long is announced
+	StreakEndBonus = 2, -- extra Bonks for ending one
 
 	-- Server-side validation. These allow for network lag between what the
 	-- attacker saw and where the server thinks everyone is.

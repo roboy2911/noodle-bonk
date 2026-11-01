@@ -1,5 +1,9 @@
 --!strict
 -- The big "BONKED!" banner and the kill feed in the top-right corner.
+--
+-- The feed stays quiet: it only lists bonks you were part of, plus big
+-- moments everyone should see (streak milestones, streaks being ended, and
+-- admin announcements).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +23,7 @@ local BANNER_TIME = 1.6
 local GOT_BONKED_COLOR = Color3.fromRGB(255, 90, 90)
 local DID_BONK_COLOR = Color3.fromRGB(255, 225, 60)
 local ANNOUNCEMENT_COLOR = Color3.fromRGB(120, 220, 255)
+local STREAK_END_COLOR = Color3.fromRGB(255, 200, 80)
 
 local BonkUI = {}
 
@@ -95,7 +100,7 @@ function BonkUI.showBanner(text: string, color: Color3, duration: number?)
 	end)
 end
 
-local function addFeedEntry(text: string)
+local function addFeedEntry(text: string, color: Color3?)
 	feedOrder += 1
 
 	local entry = Instance.new("TextLabel")
@@ -105,7 +110,7 @@ local function addFeedEntry(text: string)
 	entry.BackgroundTransparency = 0.45
 	entry.Font = Enum.Font.GothamBold
 	entry.TextSize = 16
-	entry.TextColor3 = Color3.new(1, 1, 1)
+	entry.TextColor3 = color or Color3.new(1, 1, 1)
 	entry.TextXAlignment = Enum.TextXAlignment.Right
 	entry.TextTruncate = Enum.TextTruncate.AtEnd
 	entry.Text = text .. "  "
@@ -150,11 +155,28 @@ local function onBonked(info: { [string]: any })
 	local victim: Player? = info.victim
 	local victimName: string = info.victimName
 	local position: Vector3 = info.position
+	local streak: number? = info.attackerStreak
+	local milestoneTitle: string? = info.milestoneTitle
+	local milestoneColor: Color3 = info.milestoneColor or DID_BONK_COLOR
+	local endedStreak: number? = info.endedStreak
+	local bonus: number? = info.bonus
 
-	if attacker then
-		addFeedEntry(`{attacker.DisplayName} bonked {victimName} into the deep end`)
-	else
-		addFeedEntry(`{victimName} fell in the pool`)
+	-- Feed: your own bonks only
+	if attacker == player then
+		addFeedEntry(`You bonked {victimName} into the deep end`, DID_BONK_COLOR)
+	elseif victim == player then
+		addFeedEntry(if attacker then `{attacker.DisplayName} bonked you` else "You fell in the pool", GOT_BONKED_COLOR)
+	end
+
+	-- Feed: big moments, for everyone
+	if attacker and endedStreak then
+		local attackerName = if attacker == player then "You" else attacker.DisplayName
+		local victimLabel = if victim == player then "your" else `{victimName}'s`
+		addFeedEntry(`{attackerName} ended {victimLabel} {endedStreak} bonk streak!`, STREAK_END_COLOR)
+	end
+	if attacker and milestoneTitle and streak then
+		local name = if attacker == player then "You are" else `{attacker.DisplayName} is`
+		addFeedEntry(`{name} {milestoneTitle}! {streak} bonks in a row`, milestoneColor)
 	end
 
 	Effects.playSound(Config.Sounds.Splash, position)
@@ -163,7 +185,13 @@ local function onBonked(info: { [string]: any })
 	if victim == player then
 		BonkUI.showBanner(if attacker then `BONKED by {attacker.DisplayName}!` else "SPLASH! You fell in.", GOT_BONKED_COLOR)
 	elseif attacker == player then
-		BonkUI.showBanner(`BONKED {victimName}!`, DID_BONK_COLOR)
+		if milestoneTitle and streak then
+			BonkUI.showBanner(`{milestoneTitle}! {streak} STREAK`, milestoneColor, 2.5)
+		elseif endedStreak and bonus then
+			BonkUI.showBanner(`STREAK ENDED! +{bonus} BONKS`, STREAK_END_COLOR, 2.5)
+		else
+			BonkUI.showBanner(`BONKED {victimName}!`, DID_BONK_COLOR)
+		end
 	end
 end
 

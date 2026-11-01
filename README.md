@@ -54,7 +54,8 @@ src/
     Ragdoll             floppy ragdoll (Motor6D <-> BallSocket)
     NoodleTools         gives out noodle Tools, handles menu picks
     BonkTracker         detects falls, credits bonks, updates stats
-    ArenaBuilder        test arena for empty places
+    ArenaBuilder        the arena: 330-stud pool deck with benches, umbrellas, crates
+    Streaks             bonk streaks: glow, announcements, bonus for ending one
     DummySpawner        practice dummies (on start, and from the admin panel)
     AdminService        admin access checks and every admin command
   client/               StarterPlayerScripts.Client
@@ -90,6 +91,26 @@ src/
    the server makes their joints floppy for the ragdoll.
 6. When anyone falls below `Config.KillY`, `BonkTracker` gives the bonk to the
    last person who hit them within `Config.CreditWindow` seconds.
+
+## Arena
+
+`ArenaBuilder` makes a round pool deck `Config.ArenaDiameter` studs wide
+(330 by default) floating over water. From the middle out: the spawn pad, 4
+benches, 6 beach umbrellas (their tops are solid, so you can land on them),
+8 crate piles, then an open edge with a blue stripe. To use your own map,
+put a model named `Arena` in Workspace and the builder skips itself.
+
+## Streaks and the kill feed
+
+Bonk people in a row without falling in yourself to build a streak (shown on
+the leaderboard). At 3 you're **ON FIRE**, at 5 **UNSTOPPABLE**, at 10
+**LEGENDARY**, and every 5 after that it's announced again. Each tier gives
+you a glow in its color. Ending someone's streak of 3+ gets announced and
+gives you +2 Bonks. Tune it all with `StreakTiers`, `StreakRepeatEvery`,
+`StreakEndMinimum` and `StreakEndBonus` in `Config.luau`.
+
+The kill feed stays quiet: it only shows bonks you were part of, plus streak
+milestones, ended streaks and admin announcements for everyone.
 
 ## Noodles and unlocks
 
