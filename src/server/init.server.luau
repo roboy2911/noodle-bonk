@@ -23,4 +23,10 @@ CombatService.start()
 BonkTracker.start(CombatService)
 NoodleTools.start()
 AdminService.start()
-task.spawn(DummySpawner.spawn) -- building rigs can yield
+if Config.BuildThumbnailScene then
+	-- Screenshot mode: no player characters or dummies, just the posed scene
+	Players.CharacterAutoLoads = false
+	task.spawn(require(script.ThumbnailScene).build)
+else
+	task.spawn(DummySpawner.spawn) -- building rigs can yield
+end

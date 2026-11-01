@@ -190,6 +190,48 @@ one from client code with `Effects.playSound("Name", position?)`.
 
 Music shuffles through Beach Party, Pool Party and Maui Beach at low volume.
 
+## Thumbnail scene (Studio only)
+
+`server/ThumbnailScene.luau` builds a frozen, ready-to-screenshot action shot
+on the arena: an attacker mid-swing with a bent pink noodle, a shocked victim
+flying off the edge toward the camera with a "BONK!" impact star, two players
+fighting in the background, one floating in a bubble, one launched into the
+sky, and cartoon splashes. It also sets bright saturated lighting and a low
+16:9 camera with the top-left left open for your logo. It's **off by default**.
+
+**Take the screenshot**
+
+1. In `src/shared/Config.luau`, set `BuildThumbnailScene = true` and save
+   (Rojo syncs it).
+2. In Studio, use **Run (F8)**, not Play. Run has no player, so there's no game
+   UI at all. The camera jumps to the shot after a second or two.
+3. Close or collapse the Explorer, Properties and Output panels and maximize
+   Studio so the viewport is as big as possible. For best quality, set
+   **File > Studio Settings > Rendering > Editor Quality Level** to the max.
+4. Capture the viewport: **Win+Shift+S** (Windows) or **Cmd+Shift+4** (Mac).
+   Crop to 16:9 (1920x1080 is what Roblox uses for thumbnails).
+5. If you moved the camera by accident, paste this in the Command Bar:
+   `workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable workspace.CurrentCamera.CFrame = workspace.ThumbnailScene.ThumbnailCamera.CFrame workspace.CurrentCamera.FieldOfView = 55`
+6. Press **Stop**, and set `BuildThumbnailScene = false` again before publishing.
+
+Play (F5) works too: the client locks the camera and hides all UI.
+
+**Export to Blender for a nicer render**
+
+1. While it's running, select `Workspace > ThumbnailScene` in the Explorer and
+   press **Ctrl+C**.
+2. Press **Stop**, select **Workspace**, and press **Ctrl+V**. The scene is
+   now saved in your place (it disappears from a Run session when you stop).
+3. Right-click the pasted `ThumbnailScene` > **Export Selection...** and save
+   the `.obj`. Studio writes the `.mtl` and texture images (faces) next to it.
+4. In Blender: **File > Import > Wavefront (.obj)**. Then add a sun lamp and
+   camera, and render with Cycles or Eevee at any resolution.
+5. The water and the "BONK!" text don't export (terrain and GUI). Add a water
+   plane in Blender, and put the text on in your image editor.
+
+To move things around, edit the `at(forward, sideways, height)` positions in
+`ThumbnailScene.build()`. They're measured from the camera.
+
 ## Tuning tips
 
 - **Hits feel too hard to land:** lower `MinHitSpeed` or raise `HitPadding`.

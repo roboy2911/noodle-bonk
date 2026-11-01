@@ -77,6 +77,10 @@ local Config = {
 	-- Saving
 	AutosaveInterval = 120,
 
+	-- Studio only: builds a frozen, ready-to-screenshot thumbnail scene on the
+	-- arena instead of normal play (see server/ThumbnailScene and the README).
+	BuildThumbnailScene = false,
+
 	-- Admins: the game's owner (or group owner) always counts, and everyone
 	-- does in Studio. Add more people's UserIds here.
 	AdminUserIds = {} :: { number },

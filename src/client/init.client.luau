@@ -1,6 +1,15 @@
 --!strict
 -- Client entry point.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Config = require(ReplicatedStorage.Shared.Config)
+
+if Config.BuildThumbnailScene then
+	-- Screenshot mode: just look through the thumbnail camera with no UI
+	require(script.ThumbnailView).start()
+	return
+end
+
 local CameraController = require(script.CameraController)
 local KnockbackController = require(script.KnockbackController)
 local Effects = require(script.Effects)
