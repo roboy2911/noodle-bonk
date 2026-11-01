@@ -9,6 +9,13 @@ local Config = {
 	SpawnProtection = 3, -- seconds of ForceField after spawning (swinging ends it early)
 	DefaultWalkSpeed = 16,
 
+	-- Practice dummies spawned in a ring around the arena when the server starts
+	DummyCount = 3, -- set to 0 to turn them off
+	DummyRingCenter = Vector3.new(0, 0, 0),
+	DummyRingRadius = 25,
+	DummyTag = "NoodleDummy", -- tag any Humanoid model with this to make your own dummy
+	DummyColor = Color3.fromRGB(120, 200, 255),
+
 	-- A hit still earns the bonk if the victim falls within this many seconds
 	CreditWindow = 8,
 
@@ -31,6 +38,7 @@ local Config = {
 
 	-- Noodle tool
 	DefaultNoodle = "Classic",
+	SelectCooldown = 0.5, -- seconds between noodle switches from the menu
 	GripOffset = 0.6, -- how far from the noodle's end the hand holds it
 	GripSign = 1, -- set to -1 if noodles point backwards out of the hand
 

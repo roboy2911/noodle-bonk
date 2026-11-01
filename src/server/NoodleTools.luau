@@ -17,10 +17,13 @@ local ServerStorage = game:GetService("ServerStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
+local Remotes = require(Shared.Remotes)
 
 type NoodleDef = Noodles.NoodleDef
 
 local NoodleTools = {}
+
+local lastSelect: { [Player]: number } = {}
 
 local function makeNonPhysical(part: BasePart)
 	part.CanCollide = false
@@ -139,7 +142,33 @@ local function onPlayerAdded(player: Player)
 	end
 end
 
+-- Whether the player may use this noodle. Every noodle is free for now;
+-- unlock, badge and gamepass checks go here later.
+function NoodleTools.canUse(_player: Player, id: string): boolean
+	return Noodles[id] ~= nil
+end
+
+-- A pick from the noodle menu. Setting the attribute triggers give() above.
+local function onSelectNoodle(player: Player, id: unknown)
+	if type(id) ~= "string" or not NoodleTools.canUse(player, id) then
+		return
+	end
+	local now = os.clock()
+	if now - (lastSelect[player] or 0) < Config.SelectCooldown then
+		return
+	end
+	lastSelect[player] = now
+	if player:GetAttribute("Noodle") ~= id then
+		player:SetAttribute("Noodle", id)
+	end
+end
+
 function NoodleTools.start()
+	Remotes.SelectNoodle.OnServerEvent:Connect(onSelectNoodle)
+	Players.PlayerRemoving:Connect(function(player)
+		lastSelect[player] = nil
+	end)
+
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)
