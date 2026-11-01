@@ -80,6 +80,7 @@ local Config = {
 	-- Studio only: builds a frozen, ready-to-screenshot thumbnail scene on the
 	-- arena instead of normal play (see server/ThumbnailScene and the README).
 	BuildThumbnailScene = true,
+	ThumbnailShot = "Icon", -- "Thumbnail" (16:9 action shot) or "Icon" (square close-up)
 
 	-- Admins: the game's owner (or group owner) always counts, and everyone
 	-- does in Studio. Add more people's UserIds here.

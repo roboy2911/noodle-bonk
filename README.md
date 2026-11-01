@@ -216,6 +216,21 @@ sky, and cartoon splashes. It also sets bright saturated lighting and a low
 
 Play (F5) works too: the client locks the camera and hides all UI.
 
+**Game icon (square)**
+
+The scene also has an `IconCamera`: a close-up of the grinning attacker with
+the noodle and the hit, framed for a square crop.
+
+1. In `Config.luau`, set `ThumbnailShot = "Icon"` (set it back to
+   `"Thumbnail"` for the 16:9 shot).
+2. **Run (F8)**, hide the panels, and screenshot the middle of the viewport
+   as a square (Win+Shift+S / Cmd+Shift+4).
+3. Resize it to **512x512** and upload it under Game Settings > Basic Info >
+   Game Icon. Roblox rounds the corners, so keep the face away from the edges.
+4. To flip cameras while it's running, paste this in the Command Bar
+   (swap `IconCamera` for `ThumbnailCamera` to go back):
+   `local c = workspace.ThumbnailScene.IconCamera workspace.CurrentCamera.CFrame = c.CFrame workspace.CurrentCamera.FieldOfView = c.FieldOfView`
+
 **Export to Blender for a nicer render**
 
 1. While it's running, select `Workspace > ThumbnailScene` in the Explorer and

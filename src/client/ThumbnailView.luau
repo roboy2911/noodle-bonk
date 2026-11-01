@@ -1,6 +1,7 @@
 --!strict
 -- Play-mode helper for the thumbnail scene (Config.BuildThumbnailScene).
--- Locks the camera to Workspace.ThumbnailScene.ThumbnailCamera and hides
+-- Locks the camera to the scene's active camera (ThumbnailCamera or
+-- IconCamera, see Config.ThumbnailShot) and hides
 -- all UI, so a Play (F5) test looks the same as Run (F8).
 
 local Players = game:GetService("Players")
@@ -30,7 +31,18 @@ function ThumbnailView.start()
 	task.spawn(hideCoreUi)
 
 	local scene = workspace:WaitForChild("ThumbnailScene", 60)
-	local sceneCamera = scene and scene:WaitForChild("ThumbnailCamera", 30)
+	local cameraName = "ThumbnailCamera"
+	if scene then
+		local deadline = os.clock() + 30
+		while scene:GetAttribute("ActiveCamera") == nil and os.clock() < deadline do
+			task.wait(0.1)
+		end
+		local active = scene:GetAttribute("ActiveCamera")
+		if type(active) == "string" then
+			cameraName = active
+		end
+	end
+	local sceneCamera = scene and scene:WaitForChild(cameraName, 30)
 	if not sceneCamera or not sceneCamera:IsA("Camera") then
 		warn("[Noodle Bonk] No thumbnail scene found. Is Config.BuildThumbnailScene on?")
 		return

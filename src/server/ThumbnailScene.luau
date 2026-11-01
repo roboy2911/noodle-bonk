@@ -12,6 +12,8 @@
 --     one floating in a bubble, one launched high into the sky
 --   * cartoon water splashes, bright saturated lighting, and a low 16:9
 --     camera with the top-left third left emptier for the logo
+--   * a second, square close-up camera for the game icon
+--     (Config.ThumbnailShot = "Icon")
 --
 -- Everything goes in Workspace.ThumbnailScene and is anchored. Lighting
 -- effects are named "Thumbnail..." in Lighting. Each character gets a big
@@ -35,7 +37,7 @@ local FACE_DROOL = 7074882 -- "Drool" (face 7074893)
 local FACE_BIG_D = 16132434 -- ":D" (face 16132514)
 local FACE_SHOCKED = 66329844 -- "O_o": wide eyes, little "o" mouth
 
-local SCENE_VERSION = 5 -- printed in Output so you can tell which version ran
+local SCENE_VERSION = 6 -- printed in Output so you can tell which version ran
 local HEAD_SCALE = 1.6 -- classic head mesh size; bigger than normal so faces read in a thumbnail
 
 local SKIN = Color3.fromRGB(255, 205, 150)
@@ -674,17 +676,36 @@ function ThumbnailScene.build()
 	camera.CFrame = CFrame.lookAt(cameraPosition, at(43, -4, 7))
 	camera.Parent = scene
 
+	-- Icon camera: a square close-up of the grinning attacker, the noodle and
+	-- the hit. Set Config.ThumbnailShot = "Icon" to look through it.
+	local iconCamera = Instance.new("Camera")
+	iconCamera.Name = "IconCamera"
+	iconCamera.FieldOfView = 40
+	iconCamera.CFrame = camera.CFrame
+	local head = attacker and attacker:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		local face = head.CFrame
+		-- In front of the face, off to the side away from the victim, a little low
+		local iconPosition = face.Position + face.LookVector * 7 + face.RightVector * 3.5 - Vector3.new(0, 1.2, 0)
+		-- Aim between the face and the noodle so both fill the square
+		local focus = face.Position + face.LookVector * 1.5 - face.RightVector * 1.5 - Vector3.new(0, 0.6, 0)
+		iconCamera.CFrame = CFrame.lookAt(iconPosition, focus)
+	end
+	iconCamera.Parent = scene
+
+	local active = if Config.ThumbnailShot == "Icon" then iconCamera else camera
+	scene:SetAttribute("ActiveCamera", active.Name)
 	local current = workspace.CurrentCamera
 	if current then
 		current.CameraType = Enum.CameraType.Scriptable
-		current.FieldOfView = camera.FieldOfView
-		current.CFrame = camera.CFrame
+		current.FieldOfView = active.FieldOfView
+		current.CFrame = active.CFrame
 	end
 
 	-- Sun behind the camera and high, so faces are lit
 	setupLighting((flat(cameraPosition - attackerPosition).Unit + Vector3.new(0, 1.1, 0)).Unit)
 
-	print("[Noodle Bonk] Thumbnail scene ready. See Workspace.ThumbnailScene and the README for screenshot steps.")
+	print(`[Noodle Bonk] Thumbnail scene v{SCENE_VERSION} ready, looking through {active.Name}. See the README for screenshot steps.`)
 end
 
 return ThumbnailScene
