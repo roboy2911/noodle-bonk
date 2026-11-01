@@ -35,6 +35,7 @@ local FACE_DROOL = 7074882 -- "Drool" (face 7074893)
 local FACE_BIG_D = 16132434 -- ":D" (face 16132514)
 local FACE_SHOCKED = 66329844 -- "O_o": wide eyes, little "o" mouth
 
+local SCENE_VERSION = 3 -- printed in Output so you can tell which version ran
 local HEAD_SCALE = 1.6 -- classic head mesh size; bigger than normal so faces read in a thumbnail
 
 local SKIN = Color3.fromRGB(255, 205, 150)
@@ -83,12 +84,19 @@ end
 -- Characters --------------------------------------------------------------------
 
 -- Swaps the rig's head for a classic Roblox head (the shape classic faces
--- are drawn for) with `faceImage` on the front.
-local function giveClassicHead(rig: Model, faceImage: number)
+-- are drawn for) with `faceImage` on the front. Returns whether it worked.
+local function giveClassicHead(rig: Model, faceImage: number): boolean
 	local oldHead = rig:FindFirstChild("Head")
-	local neck = oldHead and oldHead:FindFirstChild("Neck")
-	if not oldHead or not (neck and neck:IsA("Motor6D")) then
-		return
+	local neck: Motor6D? = nil
+	for _, descendant in rig:GetDescendants() do
+		if descendant:IsA("Motor6D") and descendant.Name == "Neck" then
+			neck = descendant
+			break
+		end
+	end
+	if not oldHead or not neck then
+		warn(`[Noodle Bonk] {rig.Name}: couldn't find the head or neck joint, face not applied`)
+		return false
 	end
 
 	local head = Instance.new("Part")
@@ -115,6 +123,7 @@ local function giveClassicHead(rig: Model, faceImage: number)
 	neck.C1 = CFrame.new(0, -0.5 * HEAD_SCALE, 0)
 	head.Parent = rig
 	oldHead:Destroy()
+	return true
 end
 
 -- A real R15 Roblox rig with bright body colors as "clothes" and a big
@@ -151,7 +160,19 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, faceImage
 		animate:Destroy()
 	end
 
-	giveClassicHead(rig, faceImage)
+	-- Paint the "clothes" straight onto the body parts too
+	for _, child in rig:GetChildren() do
+		if child:IsA("BasePart") then
+			if string.find(child.Name, "Leg") or string.find(child.Name, "Foot") then
+				child.Color = outfit.pants
+			elseif child.Name ~= "Head" and child.Name ~= "HumanoidRootPart" then
+				child.Color = outfit.shirt
+			end
+		end
+	end
+
+	local headOk = giveClassicHead(rig, faceImage)
+	rig:SetAttribute("ClassicHead", headOk)
 
 	-- Everything stays anchored; poseAndFreeze places each part by hand
 	for _, descendant in rig:GetDescendants() do
@@ -171,7 +192,12 @@ end
 local function poseAndFreeze(rig: Model, angles: Pose)
 	local root = rig:FindFirstChild("HumanoidRootPart")
 	if not root or not root:IsA("BasePart") then
+		warn(`[Noodle Bonk] {rig.Name}: no HumanoidRootPart, can't pose`)
 		return
+	end
+	local wanted, bent = 0, 0
+	for _ in angles do
+		wanted += 1
 	end
 
 	local childJoints: { [BasePart]: { Motor6D } } = {}
@@ -180,6 +206,7 @@ local function poseAndFreeze(rig: Model, angles: Pose)
 			local degrees = angles[motor.Name]
 			if degrees then
 				motor.C0 = motor.C0 * CFrame.Angles(math.rad(degrees.X), math.rad(degrees.Y), math.rad(degrees.Z))
+				bent += 1
 			end
 			local part0 = motor.Part0 :: BasePart
 			local list = childJoints[part0]
@@ -204,6 +231,18 @@ local function poseAndFreeze(rig: Model, angles: Pose)
 			table.insert(queue, child)
 		end
 	end
+
+	-- The pose is baked into anchored parts now. Removing the Humanoid means
+	-- nothing in Roblox can rebuild the joints or swap the head back later.
+	local humanoid = rig:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:Destroy()
+	end
+
+	print(
+		`[Noodle Bonk] Thumbnail v{SCENE_VERSION} {rig.Name}: bent {bent}/{wanted} joints, placed {#queue} parts, `
+			.. `classic head {if rig:GetAttribute("ClassicHead") then "OK" else "FAILED"}`
+	)
 end
 
 local function gripOf(rig: Model): CFrame?
@@ -442,6 +481,7 @@ end
 -- Scene ------------------------------------------------------------------------------
 
 function ThumbnailScene.build()
+	print(`[Noodle Bonk] Building thumbnail scene v{SCENE_VERSION}...`)
 	local old = workspace:FindFirstChild("ThumbnailScene")
 	if old then
 		old:Destroy()
