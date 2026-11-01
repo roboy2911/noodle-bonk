@@ -14,9 +14,8 @@
 --     camera with the top-left third left emptier for the logo
 --
 -- Everything goes in Workspace.ThumbnailScene and is anchored. Lighting
--- effects are named "Thumbnail..." in Lighting. Faces are real Roblox faces:
--- classic face assets set through HumanoidDescription.Face, or a Roblox face
--- image applied straight to the head's decal.
+-- effects are named "Thumbnail..." in Lighting. Each character gets a big
+-- classic Roblox head with a real Roblox face image on it.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -28,12 +27,15 @@ local Noodles = require(Shared.Noodles)
 
 local ThumbnailScene = {}
 
--- Real Roblox faces (checked against Roblox's catalog and thumbnails)
-local FACE_EPIC_GRIN = 42070576 -- "Epic Face" (face asset): huge open grin
-local FACE_PRANKSTER = 20052135 -- "Prankster" (face asset): squinting grin, tongue out
-local FACE_DROOL = 7074893 -- "Drool" (face asset)
-local FACE_BIG_D = 16132514 -- ":D" (face asset)
-local FACE_SHOCKED_IMAGE = 66329844 -- "O_o" (image by Roblox): wide eyes, tiny "o" mouth
+-- Real Roblox face images, all uploaded by Roblox (checked against Roblox's
+-- asset API and thumbnails). Each is the image inside a classic catalog face.
+local FACE_EPIC_GRIN = 42070872 -- "Epic Face" (face 42070576): huge open grin
+local FACE_PRANKSTER = 20052028 -- "Prankster" (face 20052135): squinting grin, tongue out
+local FACE_DROOL = 7074882 -- "Drool" (face 7074893)
+local FACE_BIG_D = 16132434 -- ":D" (face 16132514)
+local FACE_SHOCKED = 66329844 -- "O_o": wide eyes, little "o" mouth
+
+local HEAD_SCALE = 1.6 -- classic head mesh size; bigger than normal so faces read in a thumbnail
 
 local SKIN = Color3.fromRGB(255, 205, 150)
 local WATER_LIGHT = Color3.fromRGB(150, 220, 255)
@@ -44,7 +46,6 @@ local STAR_ORANGE = Color3.fromRGB(255, 150, 30)
 -- Cylinders run along X; this stands one upright
 local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
 
-type Face = { asset: number?, image: number? }
 type Outfit = { shirt: Color3, pants: Color3 }
 type Pose = { [string]: Vector3 } -- joint name -> rotation in degrees (X, Y, Z)
 
@@ -81,9 +82,44 @@ end
 
 -- Characters --------------------------------------------------------------------
 
--- A real R15 Roblox rig with bright body colors as "clothes", a slightly big
--- head (bigger face), and a real Roblox face.
-local function makeRig(parent: Instance, name: string, outfit: Outfit, face: Face): Model?
+-- Swaps the rig's head for a classic Roblox head (the shape classic faces
+-- are drawn for) with `faceImage` on the front.
+local function giveClassicHead(rig: Model, faceImage: number)
+	local oldHead = rig:FindFirstChild("Head")
+	local neck = oldHead and oldHead:FindFirstChild("Neck")
+	if not oldHead or not (neck and neck:IsA("Motor6D")) then
+		return
+	end
+
+	local head = Instance.new("Part")
+	head.Name = "Head"
+	head.Size = Vector3.new(2, 1, 1)
+	head.Color = SKIN
+	head.TopSurface = Enum.SurfaceType.Smooth
+	head.BottomSurface = Enum.SurfaceType.Smooth
+	head.Anchored = true
+	head.CanCollide = false
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Head
+	mesh.Scale = Vector3.one * HEAD_SCALE
+	mesh.Parent = head
+	local decal = Instance.new("Decal")
+	decal.Name = "face"
+	decal.Face = Enum.NormalId.Front
+	decal.Texture = `rbxassetid://{faceImage}`
+	decal.Parent = head
+
+	-- Re-attach the neck to the new head, raised so the bigger head sits on the shoulders
+	neck.Parent = head
+	neck.Part1 = head
+	neck.C1 = CFrame.new(0, -0.5 * HEAD_SCALE, 0)
+	head.Parent = rig
+	oldHead:Destroy()
+end
+
+-- A real R15 Roblox rig with bright body colors as "clothes" and a big
+-- classic head showing a real Roblox face.
+local function makeRig(parent: Instance, name: string, outfit: Outfit, faceImage: number): Model?
 	local description = Instance.new("HumanoidDescription")
 	description.HeadColor = SKIN
 	description.TorsoColor = outfit.shirt
@@ -91,10 +127,6 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, face: Fac
 	description.RightArmColor = outfit.shirt
 	description.LeftLegColor = outfit.pants
 	description.RightLegColor = outfit.pants
-	description.HeadScale = 1.3
-	if face.asset then
-		description.Face = face.asset
-	end
 
 	local ok, result = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
@@ -110,60 +142,66 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, face: Fac
 	if humanoid then
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
-		-- Avatar rules can clamp HeadScale in the description; the rig's own value isn't
-		local headScale = humanoid:FindFirstChild("HeadScale")
-		if headScale and headScale:IsA("NumberValue") then
-			headScale.Value = 1.3
-		end
+		-- Stop Roblox from rebuilding the joints later (that would undo the pose)
+		humanoid.AutomaticScalingEnabled = false
+		humanoid.RequiresNeck = false
 	end
 	local animate = rig:FindFirstChild("Animate")
 	if animate then
 		animate:Destroy()
 	end
 
-	-- Image faces go straight onto the head's face decal
-	local head = rig:FindFirstChild("Head")
-	if face.image and head then
-		local decal = head:FindFirstChild("face")
-		if not (decal and decal:IsA("Decal")) then
-			local newDecal = Instance.new("Decal")
-			newDecal.Name = "face"
-			newDecal.Face = Enum.NormalId.Front
-			newDecal.Parent = head
-			decal = newDecal
-		end
-		(decal :: Decal).Texture = `rbxassetid://{face.image}`
-	end
+	giveClassicHead(rig, faceImage)
 
-	-- Keep the root still while posing; everything else gets anchored afterwards
-	local root = rig:FindFirstChild("HumanoidRootPart")
-	if root and root:IsA("BasePart") then
-		root.Anchored = true
+	-- Everything stays anchored; poseAndFreeze places each part by hand
+	for _, descendant in rig:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.Anchored = true
+			descendant.CanCollide = false
+		end
 	end
 	rig.Parent = parent
 	return rig
 end
 
--- Rotates joints (by Motor6D name) away from their rest pose.
-local function pose(rig: Model, angles: Pose)
+-- Bends joints (by Motor6D name, degrees) and freezes the rig in that pose.
+-- Rather than trusting the physics engine to move limbs, every part is
+-- placed directly from its parent through its joint, working out from the
+-- root, then the joints are switched off. Call after PivotTo.
+local function poseAndFreeze(rig: Model, angles: Pose)
+	local root = rig:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+
+	local childJoints: { [BasePart]: { Motor6D } } = {}
 	for _, motor in rig:GetDescendants() do
-		if motor:IsA("Motor6D") then
+		if motor:IsA("Motor6D") and motor.Part0 and motor.Part1 then
 			local degrees = angles[motor.Name]
 			if degrees then
 				motor.C0 = motor.C0 * CFrame.Angles(math.rad(degrees.X), math.rad(degrees.Y), math.rad(degrees.Z))
 			end
+			local part0 = motor.Part0 :: BasePart
+			local list = childJoints[part0]
+			if not list then
+				list = {}
+				childJoints[part0] = list
+			end
+			table.insert(list, motor)
 		end
 	end
-end
 
--- Freezes a posed rig: every part is anchored exactly where the joints put it.
-local function freeze(rig: Model)
-	for _, descendant in rig:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			local cframe = descendant.CFrame
-			descendant.Anchored = true
-			descendant.CFrame = cframe
-			descendant.CanCollide = false
+	local queue: { BasePart } = { root }
+	local index = 1
+	while index <= #queue do
+		local parentPart = queue[index]
+		index += 1
+		local joints: { Motor6D } = childJoints[parentPart] or {}
+		for _, motor in joints do
+			local child = motor.Part1 :: BasePart
+			child.CFrame = parentPart.CFrame * motor.C0 * motor.C1:Inverse()
+			motor.Enabled = false
+			table.insert(queue, child)
 		end
 	end
 end
@@ -393,6 +431,14 @@ local function setupLighting(sunGoal: Vector3)
 	depth.NearIntensity = 0
 end
 
+-- A bent noodle from `grip` reaching toward `target`. Returns the tip.
+local function noodleToward(parent: Instance, grip: Vector3, target: Vector3, color: Color3, thickness: number, yawBend: number, pitchBend: number): Vector3
+	local offset = target - grip
+	-- The bend curls the noodle, so start it angled the other way to land near the target
+	local aim = CFrame.lookAt(grip, target) * CFrame.Angles(math.rad(-pitchBend * 2.5), math.rad(-yawBend * 2.5), 0)
+	return buildNoodle(parent, grip, aim.LookVector, color, offset.Magnitude * 1.02, thickness, yawBend, pitchBend)
+end
+
 -- Scene ------------------------------------------------------------------------------
 
 function ThumbnailScene.build()
@@ -422,18 +468,18 @@ function ThumbnailScene.build()
 	end
 
 	-- Foreground attacker, mid-swing at the deck's edge -----------------------------
+	local attackerPosition = at(13, 4, 3)
+	local hitSpot = at(14, -3, 6) -- where the noodle meets the victim
 	local attacker = makeRig(characters, "Attacker", {
 		shirt = Color3.fromRGB(255, 70, 160),
 		pants = Color3.fromRGB(40, 60, 200),
-	}, { asset = FACE_EPIC_GRIN })
-	local victimTarget = at(9, -3.5, 7.5)
-	local attackerPosition = at(13, 4, 3)
+	}, FACE_EPIC_GRIN)
 	if attacker then
-		local toVictim = flat(victimTarget - attackerPosition).Unit
+		local toVictim = flat(hitSpot - attackerPosition).Unit
 		attacker:PivotTo(CFrame.lookAt(attackerPosition, attackerPosition + toVictim))
-		pose(attacker, {
+		poseAndFreeze(attacker, {
 			Waist = Vector3.new(0, 30, 0), -- twisted into the swing
-			Neck = Vector3.new(10, 15, 0),
+			Neck = Vector3.new(10, 10, 0),
 			RightShoulder = Vector3.new(80, 40, 0), -- arm whipped forward and across
 			RightElbow = Vector3.new(15, 0, 0),
 			LeftShoulder = Vector3.new(-35, 0, -45), -- other arm flung back
@@ -445,30 +491,28 @@ function ThumbnailScene.build()
 		})
 	end
 
-	task.wait() -- let the joints settle before reading hand positions
-
-	-- The big bent pink noodle, and the impact star at its tip
-	local classic = Noodles.Classic
-	local tip = victimTarget
+	-- The big bent pink noodle reaching the victim, and the impact star at its tip
+	local tip = hitSpot
 	local grip = attacker and gripOf(attacker)
 	if grip then
-		tip = buildNoodle(props, grip.Position, grip.LookVector, classic.Color, 10, 1.15, -9, -2)
+		tip = noodleToward(props, grip.Position, hitSpot, Noodles.Classic.Color, 1.15, -7, -2)
 	end
-	buildImpactStar(props, tip, cameraPosition, 1.6)
+	buildImpactStar(props, tip, cameraPosition, 1.4)
 
 	-- Victim, launched off the edge toward the camera ------------------------------
 	local victim = makeRig(characters, "Victim", {
 		shirt = Color3.fromRGB(60, 220, 120),
 		pants = Color3.fromRGB(255, 200, 40),
-	}, { image = FACE_SHOCKED_IMAGE })
+	}, FACE_SHOCKED)
 	if victim then
-		local victimPosition = tip + flat(cameraPosition - tip).Unit * 2.4 - right * 1.2 + Vector3.new(0, 0.8, 0)
+		-- Their hip sits at the hit point, body flying toward the camera
+		local victimPosition = tip + flat(cameraPosition - tip).Unit * 1.6 - right * 0.8 + Vector3.new(0, 1.2, 0)
 		victim:PivotTo(
-			CFrame.lookAt(victimPosition, cameraPosition + Vector3.new(0, 3, 0))
-				* CFrame.Angles(math.rad(-25), 0, math.rad(18)) -- tipped back, mid-tumble
+			CFrame.lookAt(victimPosition, cameraPosition + Vector3.new(0, 2, 0))
+				* CFrame.Angles(math.rad(-20), 0, math.rad(22)) -- tipped back, mid-tumble
 		)
-		pose(victim, {
-			Neck = Vector3.new(-15, 0, 10),
+		poseAndFreeze(victim, {
+			Neck = Vector3.new(-10, 0, 10),
 			RightShoulder = Vector3.new(20, 0, 145), -- arms flailing up and out
 			RightElbow = Vector3.new(40, 0, 0),
 			LeftShoulder = Vector3.new(-10, 0, -120),
@@ -480,21 +524,22 @@ function ThumbnailScene.build()
 		})
 	end
 
-	-- Background: two players bonking each other on the deck ----------------------
+	-- Background: two players bonking each other on the deck, clear of the attacker
+	local spotA = at(42, 20, 3)
+	local spotB = spotA + look * 4 + right * 4
 	local fighterA = makeRig(characters, "FighterYellow", {
 		shirt = Color3.fromRGB(255, 220, 40),
 		pants = Color3.fromRGB(150, 60, 220),
-	}, { asset = FACE_PRANKSTER })
+	}, FACE_PRANKSTER)
 	local fighterB = makeRig(characters, "FighterGreen", {
 		shirt = Color3.fromRGB(40, 200, 255),
 		pants = Color3.fromRGB(255, 90, 60),
-	}, { image = FACE_SHOCKED_IMAGE })
-	local spotA = at(48, 9, 3)
-	local spotB = spotA + look * 5 + right * 3.5
+	}, FACE_SHOCKED)
 	if fighterA and fighterB then
-		fighterA:PivotTo(CFrame.lookAt(spotA, Vector3.new(spotB.X, spotA.Y, spotB.Z)) * CFrame.Angles(0, math.rad(-25), 0))
-		fighterB:PivotTo(CFrame.lookAt(spotB, Vector3.new(spotA.X, spotB.Y, spotA.Z)) * CFrame.Angles(0, math.rad(20), 0))
-		pose(fighterA, {
+		-- Facing each other, turned a little toward the camera
+		fighterA:PivotTo(CFrame.lookAt(spotA, Vector3.new(spotB.X, spotA.Y, spotB.Z)) * CFrame.Angles(0, math.rad(-35), 0))
+		fighterB:PivotTo(CFrame.lookAt(spotB, Vector3.new(spotA.X, spotB.Y, spotA.Z)) * CFrame.Angles(0, math.rad(30), 0))
+		poseAndFreeze(fighterA, {
 			Waist = Vector3.new(0, 35, 0),
 			RightShoulder = Vector3.new(95, 30, 0),
 			LeftShoulder = Vector3.new(-30, 0, -35),
@@ -502,27 +547,37 @@ function ThumbnailScene.build()
 			RightKnee = Vector3.new(-35, 0, 0),
 			LeftHip = Vector3.new(-20, 0, 0),
 		})
-		pose(fighterB, {
+		poseAndFreeze(fighterB, {
 			Waist = Vector3.new(-15, -20, 0), -- recoiling
 			Neck = Vector3.new(-15, 0, 0),
-			RightShoulder = Vector3.new(140, -20, 0), -- noodle raised high
+			RightShoulder = Vector3.new(150, -20, 0), -- noodle raised high
 			RightElbow = Vector3.new(20, 0, 0),
 			LeftShoulder = Vector3.new(30, 0, -60),
 			RightHip = Vector3.new(-15, 0, 10),
 			LeftHip = Vector3.new(20, 0, -10),
 			LeftKnee = Vector3.new(-30, 0, 0),
 		})
+		local gripA = gripOf(fighterA)
+		local headB = fighterB:FindFirstChild("Head")
+		if gripA and headB and headB:IsA("BasePart") then
+			-- A's yellow noodle bonks B on the head
+			noodleToward(props, gripA.Position, headB.Position + Vector3.new(0, 0.6, 0), Noodles.Spring.Color, 0.9, 6, -3)
+		end
+		local gripB = gripOf(fighterB)
+		if gripB then
+			buildNoodle(props, gripB.Position, gripB.LookVector, Noodles.Whip.Color, 9, 0.75, -7, 6)
+		end
 	end
 
-	-- Bubble floater above the deck, and someone launched into the sky
+	-- Someone floating in a bubble, above the water near the middle of the shot
+	local bubbleCenter = at(32, 1, 12)
 	local floater = makeRig(characters, "BubbleFloater", {
 		shirt = Color3.fromRGB(255, 140, 40),
 		pants = Color3.fromRGB(60, 160, 255),
-	}, { asset = FACE_DROOL })
-	local bubbleCenter = at(30, 6, 14)
+	}, FACE_DROOL)
 	if floater then
-		floater:PivotTo(CFrame.lookAt(bubbleCenter, cameraPosition) * CFrame.Angles(0, 0, math.rad(-12)))
-		pose(floater, {
+		floater:PivotTo(CFrame.lookAt(bubbleCenter, cameraPosition) * CFrame.new(0, 0.8, 0) * CFrame.Angles(0, 0, math.rad(-12)))
+		poseAndFreeze(floater, {
 			RightHip = Vector3.new(80, 0, 10), -- curled up, sitting in the bubble
 			RightKnee = Vector3.new(-85, 0, 0),
 			LeftHip = Vector3.new(80, 0, -10),
@@ -535,49 +590,29 @@ function ThumbnailScene.build()
 	end
 	buildBubble(props, bubbleCenter)
 
+	-- Someone launched high into the sky, upper right
+	local skySpot = at(45, 20, 27)
 	local flyer = makeRig(characters, "SkyLaunched", {
 		shirt = Color3.fromRGB(190, 90, 255),
 		pants = Color3.fromRGB(255, 255, 255),
-	}, { asset = FACE_BIG_D })
-	local skySpot = at(70, 18, 45)
+	}, FACE_BIG_D)
 	if flyer then
-		flyer:PivotTo(CFrame.lookAt(skySpot, cameraPosition) * CFrame.Angles(math.rad(-40), 0, math.rad(-30)))
-		pose(flyer, {
+		flyer:PivotTo(CFrame.lookAt(skySpot, cameraPosition) * CFrame.Angles(math.rad(-35), 0, math.rad(-30)))
+		poseAndFreeze(flyer, {
 			RightShoulder = Vector3.new(0, 0, 160),
 			LeftShoulder = Vector3.new(0, 0, -160),
 			RightHip = Vector3.new(0, 0, 40),
 			LeftHip = Vector3.new(0, 0, -40),
+			RightKnee = Vector3.new(-30, 0, 0),
+			LeftKnee = Vector3.new(-30, 0, 0),
 		})
 	end
-	buildTrail(props, skySpot, Vector3.new(0.2, -1, 0.5))
+	buildTrail(props, skySpot, Vector3.new(0.3, -1, 0.6))
 
-	task.wait()
-
-	-- Background noodles for the two fighters
-	if fighterA then
-		local gripA = gripOf(fighterA)
-		if gripA then
-			buildNoodle(props, gripA.Position, gripA.LookVector, Noodles.Spring.Color, 8, 0.9, 8, -3)
-		end
-	end
-	if fighterB then
-		local gripB = gripOf(fighterB)
-		if gripB then
-			buildNoodle(props, gripB.Position, gripB.LookVector, Noodles.Whip.Color, 9, 0.75, -7, 5)
-		end
-	end
-
-	-- Splashes where people hit the water (open water on the left of the shot)
-	buildSplash(props, at(30, -14, waterTop), 1.2, 1)
-	buildSplash(props, at(58, -24, waterTop), 1.8, 2)
-	buildSplash(props, at(95, -30, waterTop), 1.4, 3)
-
-	-- Freeze everyone in place
-	for _, rig in characters:GetChildren() do
-		if rig:IsA("Model") then
-			freeze(rig)
-		end
-	end
+	-- Splashes where people hit the water, spread out so none hides another
+	buildSplash(props, at(24, -15, waterTop), 1.1, 1)
+	buildSplash(props, at(52, -10, waterTop), 1.4, 2)
+	buildSplash(props, at(85, -38, waterTop), 1.8, 3)
 
 	-- Camera: low and looking slightly up, 16:9. The top-left is open sky for the logo.
 	local camera = Instance.new("Camera")
