@@ -35,7 +35,7 @@ local FACE_DROOL = 7074882 -- "Drool" (face 7074893)
 local FACE_BIG_D = 16132434 -- ":D" (face 16132514)
 local FACE_SHOCKED = 66329844 -- "O_o": wide eyes, little "o" mouth
 
-local SCENE_VERSION = 3 -- printed in Output so you can tell which version ran
+local SCENE_VERSION = 4 -- printed in Output so you can tell which version ran
 local HEAD_SCALE = 1.6 -- classic head mesh size; bigger than normal so faces read in a thumbnail
 
 local SKIN = Color3.fromRGB(255, 205, 150)
@@ -160,6 +160,37 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, faceImage
 		animate:Destroy()
 	end
 
+	-- Roblox only builds the rig's joints once it's in the world, so park it
+	-- there (root anchored) and build them now, before touching the head or pose.
+	local root = rig:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		root.Anchored = true
+	end
+	rig.Parent = parent
+	task.wait()
+	if humanoid then
+		local built, err = pcall(function()
+			humanoid:BuildRigFromAttachments()
+		end)
+		if not built then
+			warn(`[Noodle Bonk] {name}: BuildRigFromAttachments failed: {err}`)
+		end
+	end
+	local deadline = os.clock() + 3
+	local joints = 0
+	repeat
+		joints = 0
+		for _, descendant in rig:GetDescendants() do
+			if descendant:IsA("Motor6D") then
+				joints += 1
+			end
+		end
+		if joints < 10 then
+			task.wait(0.1)
+		end
+	until joints >= 10 or os.clock() > deadline
+	print(`[Noodle Bonk] Thumbnail v{SCENE_VERSION} {name}: rig has {joints} joints`)
+
 	-- Paint the "clothes" straight onto the body parts too
 	for _, child in rig:GetChildren() do
 		if child:IsA("BasePart") then
@@ -181,7 +212,6 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, faceImage
 			descendant.CanCollide = false
 		end
 	end
-	rig.Parent = parent
 	return rig
 end
 
