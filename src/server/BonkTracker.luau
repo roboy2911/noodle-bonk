@@ -2,8 +2,8 @@
 -- Watches for anyone falling off the island, credits the bonk to whoever hit
 -- them last, and tells every client so they can show the banner and kill feed.
 --
--- Tag any Humanoid model "NoodleDummy" (CollectionService) to get a
--- practice dummy that resets to its starting spot when bonked.
+-- Dummies (anything tagged Config.DummyTag) reset to their starting spot
+-- when bonked. DummySpawner makes a few automatically.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -14,7 +14,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 
-local DUMMY_TAG = "NoodleDummy"
+local DUMMY_TAG = Config.DummyTag
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {

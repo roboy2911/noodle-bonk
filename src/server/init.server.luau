@@ -9,6 +9,7 @@ local ArenaBuilder = require(script.ArenaBuilder)
 local CombatService = require(script.CombatService)
 local BonkTracker = require(script.BonkTracker)
 local NoodleTools = require(script.NoodleTools)
+local DummySpawner = require(script.DummySpawner)
 
 Players.RespawnTime = Config.RespawnTime
 
@@ -16,3 +17,4 @@ ArenaBuilder.build()
 CombatService.start()
 BonkTracker.start(CombatService)
 NoodleTools.start()
+task.spawn(DummySpawner.spawn) -- building rigs can yield

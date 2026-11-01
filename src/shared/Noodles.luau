@@ -5,6 +5,7 @@
 export type NoodleDef = {
 	Id: string,
 	DisplayName: string,
+	Description: string, -- shown in the noodle menu
 	Color: Color3,
 	Length: number,
 	Thickness: number,
@@ -29,6 +30,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Classic = {
 		Id = "Classic",
 		DisplayName = "Classic Noodle",
+		Description = "The trusty pink noodle. Good at everything.",
 		Color = Color3.fromRGB(255, 105, 180),
 		Length = 7,
 		Thickness = 0.8,
@@ -44,6 +46,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Frozen = {
 		Id = "Frozen",
 		DisplayName = "Frozen Noodle",
+		Description = "Slow and heavy. Hits like a frozen fish.",
 		Color = Color3.fromRGB(170, 230, 255),
 		Length = 7,
 		Thickness = 0.9,
@@ -60,6 +63,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Spring = {
 		Id = "Spring",
 		DisplayName = "Spring Noodle",
+		Description = "Sends people sky-high. Press E to bounce yourself up.",
 		Color = Color3.fromRGB(255, 225, 60),
 		Length = 7,
 		Thickness = 0.8,
@@ -78,6 +82,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Jellyfish = {
 		Id = "Jellyfish",
 		DisplayName = "Jellyfish Noodle",
+		Description = "Weak push, but leaves them stunned and wide open.",
 		Color = Color3.fromRGB(190, 120, 255),
 		Length = 7,
 		Thickness = 0.8,
@@ -95,6 +100,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Spaghetti = {
 		Id = "Spaghetti",
 		DisplayName = "Spaghetti Noodle",
+		Description = "Fast, wide and weak. Bonks up to 4 people at once.",
 		Color = Color3.fromRGB(255, 215, 130),
 		Length = 7,
 		Thickness = 0.6,
@@ -110,6 +116,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Whip = {
 		Id = "Whip",
 		DisplayName = "Noodle Whip",
+		Description = "Longest reach. Press E to yank someone toward you.",
 		Color = Color3.fromRGB(90, 220, 120),
 		Length = 10,
 		Thickness = 0.6,

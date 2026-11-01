@@ -36,12 +36,14 @@ src/
     NoodleTools        builds noodle Tools and gives them out on spawn
     BonkTracker        detects falls, credits bonks, leaderstats
     ArenaBuilder       test arena for empty places
+    DummySpawner       spawns practice dummies on server start
   client/              StarterPlayerScripts.Client
     init.client.luau   entry point
     NoodleController   swing input + ability button
     KnockbackController applies pushes, tumble and stun to your character
     Effects            hit sounds and "BONK!" pop-up text
     BonkUI             "BONKED!" banner and kill feed
+    NoodleMenu         noodle picker (NOODLES button or N key)
 ```
 
 ## How a hit works
@@ -69,14 +71,23 @@ src/
 3. Optional: put a custom Tool model in `ServerStorage/NoodleModels/<Id>`.
    Without one, a foam cylinder in the noodle's color is built.
 
-To switch noodles while testing, change the `Noodle` attribute on your Player
-(server view, Properties panel) to a noodle Id. You get the new noodle right away.
+New noodles show up in the noodle menu automatically. Give them a
+`Description` for their card.
 
-## Testing with dummies
+## Switching noodles
 
-Make a rig (Avatar tab, Rig Builder), unanchor its parts, and add the tag
-`NoodleDummy`. Dummies get knocked around like players and reset to their
-starting spot after a bonk.
+Click **NOODLES** on the left of the screen (or press **N**) and pick a card.
+The server checks the pick in `NoodleTools.canUse` (everything is free for
+now; unlock and gamepass checks go there later), then gives you the new
+noodle right away.
+
+## Practice dummies
+
+The server spawns `Config.DummyCount` light-blue dummies (3 by default) in a
+ring around the arena. They get knocked around like players and reset to
+their starting spot after a bonk. Set `DummyCount = 0` to turn them off.
+
+To place your own, tag any unanchored Humanoid model with `NoodleDummy`.
 
 ## Known gaps / next steps
 
@@ -87,3 +98,4 @@ starting spot after a bonk.
 - **Knockback trust.** The victim's client applies its own knockback, so an
   exploiter could ignore it. Server-side position checks can come later.
 - **Not built yet:** saving data, unlocking noodles, a shop, ability cooldown UI.
+- **Menu preview** is a color stripe, not a 3D model of the noodle.

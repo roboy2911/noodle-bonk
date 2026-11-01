@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local FOLDER_NAME = "NoodleRemotes"
-local EVENT_NAMES = { "Swing", "UseAbility", "Knockback", "HitConfirm", "Bonked" }
+local EVENT_NAMES = { "Swing", "UseAbility", "Knockback", "HitConfirm", "Bonked", "SelectNoodle" }
 
 local folder: Instance
 if RunService:IsServer() then
@@ -38,4 +38,6 @@ return {
 	HitConfirm = get("HitConfirm"),
 	-- server -> all clients: (info: BonkInfo) see BonkTracker
 	Bonked = get("Bonked"),
+	-- client -> server: (noodleId: string) picked from the noodle menu
+	SelectNoodle = get("SelectNoodle"),
 }
