@@ -15,7 +15,9 @@ export type Spec = {
 	Measure: "Height" | "Width",
 	Size: number,
 	-- Orientation sanity check after import: "Tall" models should be tallest
-	-- along Y, "Flat" ones thinnest along Y. nil = trust the file.
+	-- along Y, "Flat" ones thinnest along Y. nil = trust the file. Only use it
+	-- for shapes that are clearly taller than wide (or flatter than wide):
+	-- an umbrella is wider than it is tall, so "Tall" would tip it over.
 	Fit: ("Tall" | "Flat")?,
 	-- Whether players bump into it
 	CanCollide: boolean,
@@ -52,13 +54,13 @@ ModelAssets.Specs = {
 
 	PoolDeck = { Measure = "Width", Size = Config.ArenaDiameter + 3, Fit = "Flat", CanCollide = false },
 	SpawnPad = { Measure = "Width", Size = 14, Fit = "Flat", CanCollide = true },
-	Umbrella = { Measure = "Height", Size = 11.5, Fit = "Tall", CanCollide = true },
+	Umbrella = { Measure = "Height", Size = 11.5, CanCollide = true },
 	LoungeChair = { Measure = "Width", Size = 7, CanCollide = true },
 	LifeguardTower = { Measure = "Height", Size = 15, Fit = "Tall", CanCollide = true },
 	BeachBall = { Measure = "Height", Size = 4, CanCollide = true },
 	SwimRing = { Measure = "Width", Size = 5.5, Fit = "Flat", CanCollide = true },
 	RubberDuck = { Measure = "Height", Size = 9, CanCollide = true },
-	PalmTree = { Measure = "Height", Size = 21, Fit = "Tall", CanCollide = true },
+	PalmTree = { Measure = "Height", Size = 21, CanCollide = true },
 	Crate = { Measure = "Height", Size = 5, CanCollide = true },
 } :: { [string]: Spec }
 
