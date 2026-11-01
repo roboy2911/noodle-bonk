@@ -1,0 +1,12 @@
+# Rojo / Studio build output
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxm
+*.rbxmx
+sourcemap.json
+
+# Editors / OS
+.vscode/
+.DS_Store
