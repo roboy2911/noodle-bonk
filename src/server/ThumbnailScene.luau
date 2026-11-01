@@ -35,7 +35,7 @@ local FACE_DROOL = 7074882 -- "Drool" (face 7074893)
 local FACE_BIG_D = 16132434 -- ":D" (face 16132514)
 local FACE_SHOCKED = 66329844 -- "O_o": wide eyes, little "o" mouth
 
-local SCENE_VERSION = 4 -- printed in Output so you can tell which version ran
+local SCENE_VERSION = 5 -- printed in Output so you can tell which version ran
 local HEAD_SCALE = 1.6 -- classic head mesh size; bigger than normal so faces read in a thumbnail
 
 local SKIN = Color3.fromRGB(255, 205, 150)
@@ -87,15 +87,8 @@ end
 -- are drawn for) with `faceImage` on the front. Returns whether it worked.
 local function giveClassicHead(rig: Model, faceImage: number): boolean
 	local oldHead = rig:FindFirstChild("Head")
-	local neck: Motor6D? = nil
-	for _, descendant in rig:GetDescendants() do
-		if descendant:IsA("Motor6D") and descendant.Name == "Neck" then
-			neck = descendant
-			break
-		end
-	end
-	if not oldHead or not neck then
-		warn(`[Noodle Bonk] {rig.Name}: couldn't find the head or neck joint, face not applied`)
+	if not oldHead then
+		warn(`[Noodle Bonk] {rig.Name}: no Head found, face not applied`)
 		return false
 	end
 
@@ -117,10 +110,12 @@ local function giveClassicHead(rig: Model, faceImage: number): boolean
 	decal.Texture = `rbxassetid://{faceImage}`
 	decal.Parent = head
 
-	-- Re-attach the neck to the new head, raised so the bigger head sits on the shoulders
-	neck.Parent = head
-	neck.Part1 = head
-	neck.C1 = CFrame.new(0, -0.5 * HEAD_SCALE, 0)
+	-- Where the head meets the neck: its bottom, so the bigger head sits on the shoulders
+	local neckAttachment = Instance.new("Attachment")
+	neckAttachment.Name = "NeckRigAttachment"
+	neckAttachment.CFrame = CFrame.new(0, -0.5 * HEAD_SCALE, 0)
+	neckAttachment.Parent = head
+
 	head.Parent = rig
 	oldHead:Destroy()
 	return true
@@ -160,37 +155,6 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, faceImage
 		animate:Destroy()
 	end
 
-	-- Roblox only builds the rig's joints once it's in the world, so park it
-	-- there (root anchored) and build them now, before touching the head or pose.
-	local root = rig:FindFirstChild("HumanoidRootPart")
-	if root and root:IsA("BasePart") then
-		root.Anchored = true
-	end
-	rig.Parent = parent
-	task.wait()
-	if humanoid then
-		local built, err = pcall(function()
-			humanoid:BuildRigFromAttachments()
-		end)
-		if not built then
-			warn(`[Noodle Bonk] {name}: BuildRigFromAttachments failed: {err}`)
-		end
-	end
-	local deadline = os.clock() + 3
-	local joints = 0
-	repeat
-		joints = 0
-		for _, descendant in rig:GetDescendants() do
-			if descendant:IsA("Motor6D") then
-				joints += 1
-			end
-		end
-		if joints < 10 then
-			task.wait(0.1)
-		end
-	until joints >= 10 or os.clock() > deadline
-	print(`[Noodle Bonk] Thumbnail v{SCENE_VERSION} {name}: rig has {joints} joints`)
-
 	-- Paint the "clothes" straight onto the body parts too
 	for _, child in rig:GetChildren() do
 		if child:IsA("BasePart") then
@@ -212,65 +176,83 @@ local function makeRig(parent: Instance, name: string, outfit: Outfit, faceImage
 			descendant.CanCollide = false
 		end
 	end
+	rig.Parent = parent
 	return rig
 end
 
--- Bends joints (by Motor6D name, degrees) and freezes the rig in that pose.
--- Rather than trusting the physics engine to move limbs, every part is
--- placed directly from its parent through its joint, working out from the
--- root, then the joints are switched off. Call after PivotTo.
+-- The R15 body, parent part before child. Each row: joint name, parent
+-- part, child part, and the rig attachment both parts share at that joint.
+local R15_JOINTS: { { string } } = {
+	{ "Root", "HumanoidRootPart", "LowerTorso", "RootRigAttachment" },
+	{ "Waist", "LowerTorso", "UpperTorso", "WaistRigAttachment" },
+	{ "Neck", "UpperTorso", "Head", "NeckRigAttachment" },
+	{ "RightShoulder", "UpperTorso", "RightUpperArm", "RightShoulderRigAttachment" },
+	{ "RightElbow", "RightUpperArm", "RightLowerArm", "RightElbowRigAttachment" },
+	{ "RightWrist", "RightLowerArm", "RightHand", "RightWristRigAttachment" },
+	{ "LeftShoulder", "UpperTorso", "LeftUpperArm", "LeftShoulderRigAttachment" },
+	{ "LeftElbow", "LeftUpperArm", "LeftLowerArm", "LeftElbowRigAttachment" },
+	{ "LeftWrist", "LeftLowerArm", "LeftHand", "LeftWristRigAttachment" },
+	{ "RightHip", "LowerTorso", "RightUpperLeg", "RightHipRigAttachment" },
+	{ "RightKnee", "RightUpperLeg", "RightLowerLeg", "RightKneeRigAttachment" },
+	{ "RightAnkle", "RightLowerLeg", "RightFoot", "RightAnkleRigAttachment" },
+	{ "LeftHip", "LowerTorso", "LeftUpperLeg", "LeftHipRigAttachment" },
+	{ "LeftKnee", "LeftUpperLeg", "LeftLowerLeg", "LeftKneeRigAttachment" },
+	{ "LeftAnkle", "LeftLowerLeg", "LeftFoot", "LeftAnkleRigAttachment" },
+}
+
+-- Bends joints (by name, in degrees) and freezes the rig in that pose.
+-- Doesn't rely on Roblox's joint objects at all (they've changed type over
+-- the years): each part is placed straight from the rig attachments it
+-- shares with its parent, working out from the root. Then the leftover
+-- joints and the Humanoid are removed so nothing can move it again.
+-- Call after PivotTo.
 local function poseAndFreeze(rig: Model, angles: Pose)
-	local root = rig:FindFirstChild("HumanoidRootPart")
-	if not root or not root:IsA("BasePart") then
-		warn(`[Noodle Bonk] {rig.Name}: no HumanoidRootPart, can't pose`)
-		return
+	local function partNamed(name: string): BasePart?
+		local found = rig:FindFirstChild(name)
+		return if found and found:IsA("BasePart") then found else nil
 	end
-	local wanted, bent = 0, 0
+	local function attachmentOn(part: BasePart, name: string): Attachment?
+		local found = part:FindFirstChild(name)
+		return if found and found:IsA("Attachment") then found else nil
+	end
+
+	local wanted, bent, placed = 0, 0, 0
 	for _ in angles do
 		wanted += 1
 	end
 
-	local childJoints: { [BasePart]: { Motor6D } } = {}
-	for _, motor in rig:GetDescendants() do
-		if motor:IsA("Motor6D") and motor.Part0 and motor.Part1 then
-			local degrees = angles[motor.Name]
+	for _, joint in R15_JOINTS do
+		local jointName, parentName, childName, attachmentName = joint[1], joint[2], joint[3], joint[4]
+		local parentPart, childPart = partNamed(parentName), partNamed(childName)
+		local parentAttachment = parentPart and attachmentOn(parentPart, attachmentName)
+		local childAttachment = childPart and attachmentOn(childPart, attachmentName)
+		if parentPart and childPart and parentAttachment and childAttachment then
+			local degrees = angles[jointName]
+			local bend = CFrame.identity
 			if degrees then
-				motor.C0 = motor.C0 * CFrame.Angles(math.rad(degrees.X), math.rad(degrees.Y), math.rad(degrees.Z))
+				bend = CFrame.Angles(math.rad(degrees.X), math.rad(degrees.Y), math.rad(degrees.Z))
 				bent += 1
 			end
-			local part0 = motor.Part0 :: BasePart
-			local list = childJoints[part0]
-			if not list then
-				list = {}
-				childJoints[part0] = list
-			end
-			table.insert(list, motor)
+			childPart.CFrame = parentPart.CFrame * parentAttachment.CFrame * bend * childAttachment.CFrame:Inverse()
+			placed += 1
+		else
+			warn(`[Noodle Bonk] {rig.Name}: missing {childName} or its {attachmentName}`)
 		end
 	end
 
-	local queue: { BasePart } = { root }
-	local index = 1
-	while index <= #queue do
-		local parentPart = queue[index]
-		index += 1
-		local joints: { Motor6D } = childJoints[parentPart] or {}
-		for _, motor in joints do
-			local child = motor.Part1 :: BasePart
-			child.CFrame = parentPart.CFrame * motor.C0 * motor.C1:Inverse()
-			motor.Enabled = false
-			table.insert(queue, child)
+	-- The pose lives in the anchored parts now; clear out anything that could move them
+	for _, descendant in rig:GetDescendants() do
+		if descendant:IsA("JointInstance") or descendant:IsA("Constraint") then
+			descendant:Destroy()
 		end
 	end
-
-	-- The pose is baked into anchored parts now. Removing the Humanoid means
-	-- nothing in Roblox can rebuild the joints or swap the head back later.
 	local humanoid = rig:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid:Destroy()
 	end
 
 	print(
-		`[Noodle Bonk] Thumbnail v{SCENE_VERSION} {rig.Name}: bent {bent}/{wanted} joints, placed {#queue} parts, `
+		`[Noodle Bonk] Thumbnail v{SCENE_VERSION} {rig.Name}: bent {bent}/{wanted} joints, placed {placed}/{#R15_JOINTS} parts, `
 			.. `classic head {if rig:GetAttribute("ClassicHead") then "OK" else "FAILED"}`
 	)
 end
