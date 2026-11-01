@@ -15,6 +15,7 @@ local NoodleTools = require(script.NoodleTools)
 local DummySpawner = require(script.DummySpawner)
 local AdminService = require(script.AdminService)
 local Streaks = require(script.Streaks)
+local MonetizationService = require(script.MonetizationService)
 
 Players.RespawnTime = Config.RespawnTime
 
@@ -29,6 +30,7 @@ CombatService.start()
 BonkTracker.start(CombatService)
 NoodleTools.start()
 AdminService.start()
+MonetizationService.start()
 if Config.BuildThumbnailScene then
 	-- Screenshot mode: no player characters or dummies, just the posed scene
 	Players.CharacterAutoLoads = false

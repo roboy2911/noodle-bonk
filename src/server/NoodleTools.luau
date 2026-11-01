@@ -105,6 +105,7 @@ function NoodleTools.give(player: Player)
 
 	local def = NoodleTools.getNoodleDef(player)
 	local tool = buildTool(def)
+	tool:SetAttribute("Skin", player:GetAttribute("Skin")) -- every client draws the skin
 	tool.Equipped:Connect(function()
 		humanoid.WalkSpeed = NoodleTools.walkSpeedFor(player, def)
 	end)

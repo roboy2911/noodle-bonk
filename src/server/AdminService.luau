@@ -25,6 +25,7 @@ local CombatService = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
 local DummySpawner = require(script.Parent.DummySpawner)
 local NoodleTools = require(script.Parent.NoodleTools)
+local PoolParty = require(script.Parent.PoolParty)
 
 type Args = { [string]: any }
 type Command = (admin: Player, args: Args) -> (boolean, string)
@@ -385,6 +386,11 @@ commands.ResetEveryone = function()
 	workspace.Gravity = normalGravity
 	workspace:SetAttribute("LowGravity", nil)
 	return true, "Respawned everyone and reset the dummies"
+end
+
+commands.StartPoolParty = function(admin)
+	PoolParty.start(admin.DisplayName)
+	return true, `Pool Party on for {Config.PoolParty.Duration}s (buying another adds time)`
 end
 
 commands.Shutdown = function(admin)

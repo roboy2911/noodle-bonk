@@ -307,6 +307,35 @@ To move things around, edit the `at(forward, sideways, height)` positions in
 - **Noodles too wobbly / too stiff:** change `NoodleDamping`, or a noodle's `Stiffness`.
 - **Noodle points backwards out of the hand:** set `Config.GripSign = -1`.
 
+## Shop setup
+
+The shop (SHOP button, left side) sells:
+
+| Item | Type | Price | What it does |
+|---|---|---|---|
+| Noodle Skins | game pass | 79 R$ | Gold, Rainbow, Galaxy, Neon and Lava skins for any noodle (picked in the noodle menu) |
+| VIP | game pass | 99 R$ | gold VIP tag over your head, [VIP] in chat, the Diamond skin |
+| 2x Bonks | game pass | 49 R$ | every bonk counts double (leaderboard and unlocks) |
+| Pool Party | developer product | 25 R$ each | 60s for the whole server: floaty gravity, confetti, countdown, 2x Bonks for everyone |
+
+Roblox only lets you create passes and products on Creator Hub, so:
+
+1. Publish the game, then open it on **create.roblox.com** > **Monetization**.
+2. **Passes > Create a Pass** three times, uploading these icons and setting
+   these prices: `marketing/shop/pass_skins_512.png` (79),
+   `pass_vip_512.png` (99), `pass_2x_bonks_512.png` (49). Turn on **Item for
+   Sale** for each.
+3. **Developer Products > Create** "Pool Party" with
+   `product_pool_party_512.png` at 25 R$.
+4. Copy each ID into `Config.Monetization` (`SkinsPassId`, `VipPassId`,
+   `DoubleBonksPassId`, `PoolPartyProductId`) and publish again.
+
+Until an ID is filled in, its shop button says **COMING SOON**. In Studio you
+own everything (`StudioOwnsEverything`) so you can test the perks, and admins
+can start a party from the admin panel (Server tab > Start Pool Party). The
+shop's icons are already uploaded as images (`src/shared/ImageIds.luau`,
+re-upload with `python3 tools/upload_images.py`).
+
 ## Publishing checklist
 
 1. Open (or create) a place for Noodle Bonk only, connect Rojo in **Edit

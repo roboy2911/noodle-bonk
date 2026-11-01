@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local NoodleMesh = require(Shared.NoodleMesh)
+local Skins = require(Shared.Skins)
 local NoodleSim = require(script.Parent.NoodleSim)
 
 type NoodleDef = Noodles.NoodleDef
@@ -29,6 +30,7 @@ export type Visual = {
 	joints: { BasePart },
 	scale: number,
 	usesMesh: boolean, -- built with the foam mesh (else rebuilt once it loads)
+	skin: string?, -- skin currently drawn (the Tool's "Skin" attribute)
 }
 
 local player = Players.LocalPlayer
@@ -69,6 +71,27 @@ local function applySize(visual: Visual)
 	visual.sim:setSegmentLength(segmentLength)
 end
 
+-- Colors the noodle for its skin, or the noodle's own color with no skin.
+local function applySkin(visual: Visual, skinId: string?)
+	visual.skin = skinId
+	local skin = if skinId then Skins.ById[skinId] else nil
+	local color = if skin then skin.Color else visual.def.Color
+	local material = if skin then skin.Material else Enum.Material.SmoothPlastic
+	for _, piece in visual.segments do
+		piece.part.Color = color
+		piece.part.Material = material
+	end
+	for _, joint in visual.joints do
+		joint.Color = color
+		joint.Material = material
+	end
+end
+
+local function skinOf(tool: Tool): string?
+	local skin = tool:GetAttribute("Skin")
+	return if type(skin) == "string" and Skins.ById[skin] then skin else nil
+end
+
 local function create(tool: Tool, handle: BasePart, character: Model, def: NoodleDef): Visual
 	local segments, joints = {}, {}
 	for i = 1, Config.NoodleSegments do
@@ -96,8 +119,10 @@ local function create(tool: Tool, handle: BasePart, character: Model, def: Noodl
 		joints = joints,
 		scale = 1,
 		usesMesh = NoodleMesh.isMeshReady(),
+		skin = nil,
 	}
 	applySize(visual)
+	applySkin(visual, skinOf(tool))
 	return visual
 end
 
@@ -153,6 +178,22 @@ local function step(dt: number)
 				visual.scale = targetScale
 			end
 			applySize(visual)
+		end
+
+		-- Skin changes (picked from the menu) and the rainbow skin's moving colors
+		local skinId = skinOf(tool)
+		if skinId ~= visual.skin then
+			applySkin(visual, skinId)
+		end
+		local skin = if skinId then Skins.ById[skinId] else nil
+		if skin and skin.Rainbow then
+			local now = os.clock()
+			local count = #visual.segments
+			for i, piece in visual.segments do
+				local color = Skins.rainbowAt(i / count, now)
+				piece.part.Color = color
+				visual.joints[i].Color = color
+			end
 		end
 
 		local handleCFrame = visual.handle.CFrame

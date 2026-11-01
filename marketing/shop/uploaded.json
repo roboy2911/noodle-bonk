@@ -1,0 +1,18 @@
+{
+  "pass_2x_bonks_512": {
+    "assetId": 113003712322838,
+    "sha256": "0b16a8876c5125fa7054c60039c89a4f3276279ffe8179c5b81d6d60e283eed8"
+  },
+  "pass_skins_512": {
+    "assetId": 119916987863797,
+    "sha256": "4326c92b3fabcf4b282887cae3fba2aa30d5333674e4357a52ebe18f7c55b139"
+  },
+  "pass_vip_512": {
+    "assetId": 130552299394299,
+    "sha256": "b8bd212dad514e49ef89398f8c5f31cdaa7a1c4b1499c55dec5f3e053fffdef0"
+  },
+  "product_pool_party_512": {
+    "assetId": 138687332084920,
+    "sha256": "eecc3cc29e50ba510e884fdaba24fd03ca9d7b6f30aa22e845e27c22bfc63fa4"
+  }
+}

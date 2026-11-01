@@ -16,6 +16,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local Streaks = require(script.Parent.Streaks)
+local MonetizationService = require(script.Parent.MonetizationService)
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {
@@ -71,7 +72,8 @@ local function bonk(character: Model, root: BasePart)
 	-- Dummy bonks only count in Studio, so nobody can farm unlocks on them live
 	local counts = victim ~= nil or (RunService:IsStudio() and Config.DummyBonksCountInStudio)
 	if attacker and counts then
-		DataService.increment(attacker, "Bonks", 1)
+		-- 2x Bonks pass and Pool Parties make a bonk worth more
+		DataService.increment(attacker, "Bonks", MonetizationService.bonkValue(attacker))
 	end
 	if victim then
 		DataService.increment(victim, "Splashes", 1)

@@ -3,6 +3,7 @@
 -- opens a grid of every noodle with its stats. Locked noodles show what it
 -- takes to unlock them and how close you are. Clicking an unlocked card asks
 -- the server to switch. A banner pops up whenever you unlock something new.
+-- The row along the top picks a noodle skin; locked skins open the shop.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -14,6 +15,8 @@ local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local Unlocks = require(Shared.Unlocks)
+local Skins = require(Shared.Skins)
+local Shop = require(script.Parent.Shop)
 local BonkUI = require(script.Parent.BonkUI)
 local Effects = require(script.Parent.Effects)
 local CameraController = require(script.Parent.CameraController)
@@ -50,6 +53,7 @@ local panel: Frame
 local panelScale: UIScale
 local cards: { [string]: Card } = {}
 local isOpen = false
+local skinChips: { [string]: { button: TextButton, stroke: UIStroke, skin: Skins.SkinDef? } } = {}
 local knownUnlocked: { [string]: boolean }? = nil -- nil until saved data has loaded
 
 -- Helpers ----------------------------------------------------------------
@@ -233,7 +237,80 @@ local function buildCard(parent: Instance, def: NoodleDef, order: number, ranges
 	end)
 end
 
+-- Skin row ------------------------------------------------------------------------------
+
+local NO_SKIN = "None"
+
+local function skinAllowed(skin: Skins.SkinDef?): boolean
+	return skin == nil or player:GetAttribute(`Owns_{skin.Requires}`) == true
+end
+
+local function refreshSkins()
+	local current = player:GetAttribute("Skin")
+	local selected = if type(current) == "string" then current else NO_SKIN
+	for id, chip in skinChips do
+		chip.stroke.Enabled = id == selected
+		local name = if chip.skin then chip.skin.DisplayName else "No skin"
+		chip.button.Text = if skinAllowed(chip.skin) then name else `🔒 {name}`
+	end
+end
+
+local function buildSkinRow(parent: Instance)
+	local row = Instance.new("ScrollingFrame")
+	row.Position = UDim2.fromOffset(16, 60)
+	row.Size = UDim2.new(1, -32, 0, 44)
+	row.BackgroundTransparency = 1
+	row.BorderSizePixel = 0
+	row.ScrollBarThickness = 3
+	row.ScrollingDirection = Enum.ScrollingDirection.X
+	row.CanvasSize = UDim2.new()
+	row.AutomaticCanvasSize = Enum.AutomaticSize.X
+	row.Parent = parent
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0, 6)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = row
+
+	local title = label(row, "SKIN:", Enum.Font.LuckiestGuy, 18, TEXT_COLOR)
+	title.Size = UDim2.fromOffset(58, 34)
+
+	-- First option is "no skin", then every skin in order
+	for i = 1, #Skins.List + 1 do
+		local skin: Skins.SkinDef? = if i == 1 then nil else Skins.List[i - 1]
+		local id = if skin then skin.Id else NO_SKIN
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.fromOffset(if skin and skin.Requires == "Vip" then 118 else 86, 34)
+		button.LayoutOrder = i + 1
+		button.BackgroundColor3 = if skin then skin.Color:Lerp(Color3.new(0, 0, 0), 0.25) else Color3.fromRGB(70, 80, 105)
+		button.Font = Enum.Font.GothamBold
+		button.TextSize = 12
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.TextStrokeTransparency = 0.5
+		button.Parent = row
+		corner(button, 8)
+		local stroke = Instance.new("UIStroke")
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Thickness = 3
+		stroke.Color = EQUIPPED_COLOR
+		stroke.Enabled = false
+		stroke.Parent = button
+		button.Activated:Connect(function()
+			Effects.playSound("Click")
+			if skinAllowed(skin) then
+				Remotes.SelectSkin:FireServer(if skin then skin.Id else nil)
+			elseif skin then
+				Shop.prompt(skin.Requires)
+			end
+		end)
+		skinChips[id] = { button = button, stroke = stroke, skin = skin }
+	end
+	refreshSkins()
+end
+
 local function refresh()
+	refreshSkins()
 	local stats = Unlocks.readStats(player)
 	local current = player:GetAttribute("Noodle")
 	for id, card in cards do
@@ -346,8 +423,8 @@ local function build()
 	end)
 
 	local scroller = Instance.new("ScrollingFrame")
-	scroller.Position = UDim2.fromOffset(16, 64)
-	scroller.Size = UDim2.new(1, -32, 1, -80)
+	scroller.Position = UDim2.fromOffset(16, 110)
+	scroller.Size = UDim2.new(1, -32, 1, -126)
 	scroller.BackgroundTransparency = 1
 	scroller.BorderSizePixel = 0
 	scroller.ScrollBarThickness = 6
@@ -355,6 +432,7 @@ local function build()
 	scroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroller.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroller.Parent = panel
+	buildSkinRow(panel)
 
 	local grid = Instance.new("UIGridLayout")
 	grid.CellSize = UDim2.fromOffset(220, 236)

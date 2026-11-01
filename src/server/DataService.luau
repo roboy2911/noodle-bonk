@@ -15,12 +15,14 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Unlocks = require(Shared.Unlocks)
+local Skins = require(Shared.Skins)
 
 local STORE_NAME = "NoodleBonk_v1"
 
 export type PlayerData = {
 	Stats: { [string]: number },
 	Selected: string,
+	Skin: string?, -- chosen noodle skin (still needs the pass to use it)
 }
 
 type Profile = {
@@ -80,6 +82,9 @@ local function load(player: Player): (PlayerData, boolean)
 				end
 				if type(result.Selected) == "string" and Noodles[result.Selected] then
 					data.Selected = result.Selected
+				end
+				if type(result.Skin) == "string" and Skins.ById[result.Skin] then
+					data.Skin = result.Skin
 				end
 			end
 			return data, true
@@ -198,6 +203,13 @@ end
 function DataService.canSave(player: Player): boolean
 	local profile = profiles[player]
 	return profile ~= nil and profile.canSave
+end
+
+function DataService.setSkin(player: Player, skinId: string?)
+	local profile = profiles[player]
+	if profile then
+		profile.data.Skin = skinId
+	end
 end
 
 function DataService.setSelected(player: Player, noodleId: string)
