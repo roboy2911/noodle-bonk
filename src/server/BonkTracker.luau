@@ -20,7 +20,8 @@ local MonetizationService = require(script.Parent.MonetizationService)
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {
-	attacker: Player?, -- nil if nobody gets credit (they just fell)
+	attacker: Player?, -- nil if nobody gets credit (they just fell) or a dummy did it
+	attackerName: string?, -- set when a dummy did it
 	victim: Player?, -- nil for dummies
 	victimName: string,
 	noodleId: string?,
@@ -68,6 +69,8 @@ local function bonk(character: Model, root: BasePart)
 	if attacker == victim then
 		attacker = nil
 	end
+	-- A dummy did it (dummy fight mode): show its name, no stats or streak for it
+	local dummyName = if record and not record.attacker then record.attackerName else nil
 
 	-- Dummy bonks only count in Studio, so nobody can farm unlocks on them live
 	local counts = victim ~= nil or (RunService:IsStudio() and Config.DummyBonksCountInStudio)
@@ -83,6 +86,7 @@ local function bonk(character: Model, root: BasePart)
 
 	local info: BonkInfo = {
 		attacker = attacker,
+		attackerName = dummyName,
 		victim = victim,
 		victimName = if victim then victim.DisplayName else character.Name,
 		noodleId = record and record.noodleId,

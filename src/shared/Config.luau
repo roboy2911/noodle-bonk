@@ -19,6 +19,16 @@ local Config = {
 	DummyColor = Color3.fromRGB(120, 200, 255),
 	DummyBonksCountInStudio = true, -- bonking dummies counts toward unlocks, but only in Studio
 
+	-- Dummy fight (admin panel > Server > Dummies fight: ON). Dummies grab a
+	-- noodle, chase the nearest player and swing at them. Only in that server.
+	DummyFight = {
+		Noodle = "Classic", -- noodle the dummies hold
+		WalkSpeed = 13, -- a bit slower than players, so you can get away
+		ChaseRange = 120, -- studs; players further away are ignored
+		SwingCooldown = 1.4, -- seconds between a dummy's swings
+		Power = 0.85, -- fraction of the noodle's normal knockback
+	},
+
 	-- Swinging. You swing by turning your camera; a hit counts when the noodle
 	-- actually touches someone while moving fast enough.
 	MinHitSpeed = 22, -- noodle speed (studs/sec) needed for a hit

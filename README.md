@@ -213,7 +213,18 @@ Pick a player in the list on the left (you're selected by default), then:
 |---|---|
 | **Player** | Give any noodle (even locked, for this session) · set or add Bonks/Splashes (saved) · reset all their data · kick · ban 1 day / forever · unban by name or UserId · go to them · bring them · reset their character · launch · max Soak · dry off |
 | **Testing** | Toggles for the selected player: unlock all, god mode (can't be hit, falls put you back on the deck), fly (Space up, Q down), noclip, no ability cooldown · set walk speed |
-| **Server** | Spawn/clear dummies · announcement banner for everyone (goes through Roblox's text filter) · soak storm · dry everyone · low gravity · launch everyone · respawn everyone · shut down the server |
+| **Server** | Spawn/clear dummies · dummies fight · announcement banner for every server (goes through Roblox's text filter) · soak storm · dry everyone · low gravity · launch everyone · Pool Party for every server · respawn everyone · shut down the server |
+
+**Dummies fight** makes every dummy grab a noodle, chase the nearest player
+and swing at them, with the normal hit effects and kill feed ("Dummy 2
+bonked you"). It only affects the server you're in, and dummies never earn
+stats. Tune it with `Config.DummyFight`.
+
+**Announcements and Pool Parties started here reach every server** through
+MessagingService (`server/GlobalEvents`). Pool Parties bought from the shop
+stay in the buyer's server. Everything else on the Server tab only affects
+your own server. Cross-server messages need a published game; in an
+unpublished Studio place they only show in your own server.
 
 Risky buttons (kick, ban, reset data, respawn everyone, shut down) need a
 second click within 3 seconds. Bans use Roblox's ban API, which only works in

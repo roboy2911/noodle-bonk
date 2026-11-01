@@ -23,9 +23,10 @@ local Remotes = require(Shared.Remotes)
 local Unlocks = require(Shared.Unlocks)
 local CombatService = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
+local DummyFight = require(script.Parent.DummyFight)
 local DummySpawner = require(script.Parent.DummySpawner)
+local GlobalEvents = require(script.Parent.GlobalEvents)
 local NoodleTools = require(script.Parent.NoodleTools)
-local PoolParty = require(script.Parent.PoolParty)
 
 type Args = { [string]: any }
 type Command = (admin: Player, args: Args) -> (boolean, string)
@@ -327,6 +328,13 @@ commands.ClearDummies = function()
 	return true, `Removed {DummySpawner.clear()} dummies`
 end
 
+-- Only this server's dummies
+commands.ToggleDummyFight = function()
+	local on = not DummyFight.isOn()
+	DummyFight.setEnabled(on)
+	return true, if on then "Dummies are coming for you!" else "Dummies calmed down"
+end
+
 commands.Announce = function(admin, args)
 	local text = args.text
 	if type(text) ~= "string" or string.gsub(text, "%s", "") == "" then
@@ -341,8 +349,10 @@ commands.Announce = function(admin, args)
 	if not ok then
 		return false, "Couldn't filter that message, try again"
 	end
-	Remotes.Announcement:FireAllClients(filtered, admin.DisplayName)
-	return true, "Announcement sent"
+	if GlobalEvents.announce(filtered, admin.DisplayName) then
+		return true, "Announcement sent to every server"
+	end
+	return true, "Announcement shown here, but other servers couldn't be reached"
 end
 
 commands.SoakStorm = function()
@@ -381,6 +391,7 @@ commands.ResetEveryone = function()
 			player:LoadCharacter()
 		end)
 	end
+	DummyFight.setEnabled(false)
 	local removed = DummySpawner.clear()
 	DummySpawner.spawn(math.max(removed, Config.DummyCount))
 	workspace.Gravity = normalGravity
@@ -389,8 +400,9 @@ commands.ResetEveryone = function()
 end
 
 commands.StartPoolParty = function(admin)
-	PoolParty.start(admin.DisplayName)
-	return true, `Pool Party on for {Config.PoolParty.Duration}s (buying another adds time)`
+	local reached = GlobalEvents.poolParty(admin.DisplayName)
+	local where = if reached then "in every server" else "here (other servers couldn't be reached)"
+	return true, `Pool Party on {where} for {Config.PoolParty.Duration}s`
 end
 
 commands.Shutdown = function(admin)

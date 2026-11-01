@@ -24,7 +24,8 @@ local NoodleTools = {}
 
 local lastSelect: { [Player]: number } = {}
 
-local function buildTool(def: NoodleDef): Tool
+-- A noodle Tool: an invisible handle that clients draw the noodle on.
+function NoodleTools.buildTool(def: NoodleDef): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = def.DisplayName
 	tool.RequiresHandle = true
@@ -104,7 +105,7 @@ function NoodleTools.give(player: Player)
 	removeNoodles(character)
 
 	local def = NoodleTools.getNoodleDef(player)
-	local tool = buildTool(def)
+	local tool = NoodleTools.buildTool(def)
 	tool:SetAttribute("Skin", player:GetAttribute("Skin")) -- every client draws the skin
 	tool.Equipped:Connect(function()
 		humanoid.WalkSpeed = NoodleTools.walkSpeedFor(player, def)

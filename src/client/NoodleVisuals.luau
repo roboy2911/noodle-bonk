@@ -1,5 +1,5 @@
 --!strict
--- Draws every player's noodle as a bendy chain of foam segments (the ridged
+-- Draws every noodle (players' and fighting dummies') as a bendy chain of foam segments (the ridged
 -- Blender foam mesh once it has loaded, cylinders before that). Each client
 -- simulates every noodle itself, so they all look smooth with no network cost.
 -- The real Tool is only an invisible handle in the hand.
@@ -7,6 +7,7 @@
 -- After updating the local player's noodle, it calls the onLocalStep
 -- callbacks so NoodleController can check for hits on the same frame.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -136,16 +137,31 @@ local function destroy(visual: Visual)
 	visuals[visual.tool] = nil
 end
 
+-- Player characters, plus dummies (they hold noodles in dummy fight mode).
+local function noodleHolders(): { Model }
+	local list = {}
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(list, other.Character)
+		end
+	end
+	for _, dummy in CollectionService:GetTagged(Config.DummyTag) do
+		if dummy:IsA("Model") then
+			table.insert(list, dummy)
+		end
+	end
+	return list
+end
+
 -- Finds every noodle currently held by a character.
 local function syncTools()
 	local held: { [Tool]: boolean } = {}
-	for _, other in Players:GetPlayers() do
-		local character = other.Character
+	for _, character in noodleHolders() do
 		local tool = character and character:FindFirstChildOfClass("Tool")
 		local id = tool and tool:GetAttribute("NoodleId")
 		local def = if type(id) == "string" then Noodles[id] else nil
 		local handle = tool and tool:FindFirstChild("Handle")
-		if character and tool and def and handle and handle:IsA("BasePart") then
+		if tool and def and handle and handle:IsA("BasePart") then
 			held[tool] = true
 			local existing = visuals[tool]
 			if existing and not existing.usesMesh and NoodleMesh.isMeshReady() then
