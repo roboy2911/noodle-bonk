@@ -1,19 +1,25 @@
 --!strict
 -- Applies knockback sent by the server. Your own character's physics run on
 -- your client, so the push has to be applied here for it to look smooth.
+-- (The server turns the joints floppy at the same time; see server/Ragdoll.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
 local Remotes = require(Shared.Remotes)
+local CameraController = require(script.Parent.CameraController)
+
+type KnockbackInfo = Remotes.KnockbackInfo
 
 local player = Players.LocalPlayer
 
 local KnockbackController = {}
 
--- Tokens let a newer ragdoll or stun cancel the timer of an older one
+-- Tokens let a newer launch cancel the timers of an older one
 local ragdollToken = 0
+local floatToken = 0
 local stunToken = 0
 local savedMovement: { walkSpeed: number, jumpPower: number, jumpHeight: number }? = nil
 
@@ -50,7 +56,13 @@ local function stun(humanoid: Humanoid, duration: number)
 	end)
 end
 
-local function onKnockback(velocity: Vector3, ragdollTime: number, stunTime: number?)
+local function getUp(humanoid: Humanoid)
+	if humanoid.Health > 0 and humanoid:GetState() == Enum.HumanoidStateType.Physics then
+		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+	end
+end
+
+local function onKnockback(info: KnockbackInfo)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -58,19 +70,33 @@ local function onKnockback(velocity: Vector3, ragdollTime: number, stunTime: num
 		return
 	end
 
-	if ragdollTime > 0 then
-		-- Physics state turns off the Humanoid's balance so the body tumbles
-		ragdollToken += 1
+	floatToken += 1 -- any new launch ends a float
+	ragdollToken += 1
+
+	local float = info.float
+	if float then
+		-- Drift along at a steady speed (bubble)
+		local token = floatToken
+		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		task.spawn(function()
+			local endTime = os.clock() + float.time
+			while os.clock() < endTime and token == floatToken and humanoid.Health > 0 do
+				root.AssemblyLinearVelocity = float.velocity
+				root.AssemblyAngularVelocity = Vector3.zero
+				RunService.Heartbeat:Wait()
+			end
+			if token == floatToken then
+				getUp(humanoid)
+			end
+		end)
+	elseif info.ragdollTime > 0 then
+		-- Physics state turns off the Humanoid's balance so the body flops
 		local token = ragdollToken
 		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 		root.AssemblyAngularVelocity = randomSpin()
-		task.delay(ragdollTime, function()
-			if
-				token == ragdollToken
-				and humanoid.Health > 0
-				and humanoid:GetState() == Enum.HumanoidStateType.Physics
-			then
-				humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		task.delay(info.ragdollTime, function()
+			if token == ragdollToken then
+				getUp(humanoid)
 			end
 		end)
 	else
@@ -78,10 +104,13 @@ local function onKnockback(velocity: Vector3, ragdollTime: number, stunTime: num
 		humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
 	end
 
-	root.AssemblyLinearVelocity = velocity
+	root.AssemblyLinearVelocity = info.velocity
 
-	if stunTime and stunTime > 0 then
-		stun(humanoid, stunTime)
+	if info.stunTime and info.stunTime > 0 then
+		stun(humanoid, info.stunTime)
+	end
+	if info.shake then
+		CameraController.shake(info.shake)
 	end
 end
 
@@ -92,6 +121,7 @@ function KnockbackController.start()
 		savedMovement = nil
 		stunToken += 1
 		ragdollToken += 1
+		floatToken += 1
 	end)
 end
 

@@ -50,7 +50,11 @@ function ArenaBuilder.build()
 	arena.Parent = workspace
 
 	-- The pool everyone gets bonked into
-	workspace.Terrain:FillBlock(CFrame.new(0, -40, 0), Vector3.new(1024, 20, 1024), Enum.Material.Water)
+	workspace.Terrain:FillBlock(
+		CFrame.new(0, Config.WaterLevel - 10, 0),
+		Vector3.new(1024, 20, 1024),
+		Enum.Material.Water
+	)
 end
 
 return ArenaBuilder

@@ -1,6 +1,7 @@
 --!strict
 -- Watches for anyone falling off the island, credits the bonk to whoever hit
--- them last, and tells every client so they can show the banner and kill feed.
+-- them last, updates saved stats, and tells every client so they can show
+-- the banner, kill feed and splash.
 --
 -- Dummies (anything tagged Config.DummyTag) reset to their starting spot
 -- when bonked. DummySpawner makes a few automatically.
@@ -13,8 +14,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
-
-local DUMMY_TAG = Config.DummyTag
+local DataService = require(script.Parent.DataService)
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {
@@ -29,25 +29,6 @@ local BonkTracker = {}
 
 local combat: any -- CombatService, set in start()
 local dummySpawns: { [Model]: CFrame } = {}
-
-local function addLeaderstats(player: Player)
-	local stats = Instance.new("Folder")
-	stats.Name = "leaderstats"
-
-	local bonks = Instance.new("IntValue")
-	bonks.Name = "Bonks"
-	bonks.Parent = stats
-
-	stats.Parent = player
-end
-
-local function creditBonk(attacker: Player)
-	local stats = attacker:FindFirstChild("leaderstats")
-	local bonks = stats and stats:FindFirstChild("Bonks")
-	if bonks and bonks:IsA("IntValue") then
-		bonks.Value += 1
-	end
-end
 
 local function resetDummy(dummy: Model)
 	local spawnCFrame = dummySpawns[dummy]
@@ -64,6 +45,7 @@ local function resetDummy(dummy: Model)
 	if humanoid then
 		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 	end
+	combat.popBubble(dummy)
 	dummy:SetAttribute("Soak", 0)
 	dummy:SetAttribute("Bonked", nil)
 end
@@ -79,8 +61,14 @@ local function bonk(character: Model, root: BasePart)
 	if attacker == victim then
 		attacker = nil
 	end
-	if attacker then
-		creditBonk(attacker)
+
+	-- Dummy bonks only count in Studio, so nobody can farm unlocks on them live
+	local counts = victim ~= nil or (RunService:IsStudio() and Config.DummyBonksCountInStudio)
+	if attacker and counts then
+		DataService.increment(attacker, "Bonks", 1)
+	end
+	if victim then
+		DataService.increment(victim, "Splashes", 1)
 	end
 
 	local info: BonkInfo = {
@@ -121,16 +109,11 @@ end
 function BonkTracker.start(combatService: any)
 	combat = combatService
 
-	Players.PlayerAdded:Connect(addLeaderstats)
-	for _, player in Players:GetPlayers() do
-		addLeaderstats(player)
-	end
-
-	CollectionService:GetInstanceAddedSignal(DUMMY_TAG):Connect(addDummy)
-	CollectionService:GetInstanceRemovedSignal(DUMMY_TAG):Connect(function(instance)
+	CollectionService:GetInstanceAddedSignal(Config.DummyTag):Connect(addDummy)
+	CollectionService:GetInstanceRemovedSignal(Config.DummyTag):Connect(function(instance)
 		dummySpawns[instance :: Model] = nil
 	end)
-	for _, instance in CollectionService:GetTagged(DUMMY_TAG) do
+	for _, instance in CollectionService:GetTagged(Config.DummyTag) do
 		addDummy(instance)
 	end
 

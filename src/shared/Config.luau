@@ -1,12 +1,13 @@
 --!strict
--- Global combat tuning. Per-noodle numbers live in Noodles.luau.
+-- Global tuning. Per-noodle numbers live in Noodles.luau.
 
 local Config = {
 	-- Arena
 	KillY = -20, -- falling below this height counts as getting bonked
+	WaterLevel = -30, -- top of the pool water (splash effects appear here)
 	AutoBuildArena = true, -- builds a test pool island if Workspace has no model named "Arena"
 	RespawnTime = 2,
-	SpawnProtection = 3, -- seconds of ForceField after spawning (swinging ends it early)
+	SpawnProtection = 3, -- seconds of ForceField after spawning (bonking someone ends it early)
 	DefaultWalkSpeed = 16,
 
 	-- Practice dummies spawned in a ring around the arena when the server starts
@@ -15,6 +16,22 @@ local Config = {
 	DummyRingRadius = 25,
 	DummyTag = "NoodleDummy", -- tag any Humanoid model with this to make your own dummy
 	DummyColor = Color3.fromRGB(120, 200, 255),
+	DummyBonksCountInStudio = true, -- bonking dummies counts toward unlocks, but only in Studio
+
+	-- Swinging. You swing by turning your camera; a hit counts when the noodle
+	-- actually touches someone while moving fast enough.
+	MinHitSpeed = 22, -- noodle speed (studs/sec) needed for a hit
+	FullPowerSpeed = 90, -- noodle speed for full knockback
+	MinPowerScale = 0.35, -- fraction of knockback a minimum-speed hit gets
+	MaxHitSpeed = 200, -- faster claims are clamped
+	HitPadding = 0.6, -- extra hit radius around the noodle
+	ArmReach = 2.5, -- distance from your root to where the noodle starts
+	WhooshSpeed = 60, -- noodle speed that plays the whoosh sound
+
+	-- Bendy noodle simulation (visual and hits)
+	NoodleSegments = 6,
+	NoodleDamping = 6, -- higher = settles faster, less wobble
+	NoodleSag = 18, -- how much gravity droops the noodle
 
 	-- A hit still earns the bonk if the victim falls within this many seconds
 	CreditWindow = 8,
@@ -22,9 +39,7 @@ local Config = {
 	-- Server-side validation. These allow for network lag between what the
 	-- attacker saw and where the server thinks everyone is.
 	RangeTolerance = 5,
-	ArcToleranceDeg = 25,
-	CooldownTolerance = 0.85, -- server accepts swings at 85% of the cooldown
-	MaxTargetsPerRequest = 8,
+	CooldownTolerance = 0.85, -- server accepts hits/abilities at 85% of the cooldown
 
 	-- Soak: every hit you take makes you wetter, and wetter players fly further.
 	-- Knockback is multiplied by (1 + Soak / 100).
@@ -36,11 +51,18 @@ local Config = {
 	RagdollTime = 1.2,
 	BodyRadius = 2, -- added to range checks so you can hit the edge of a body
 
+	-- Inflatable noodle ability
+	InflateScale = 2.2,
+	InflateTime = 6,
+	InflateKnockbackBonus = 1.4,
+
 	-- Noodle tool
 	DefaultNoodle = "Classic",
 	SelectCooldown = 0.5, -- seconds between noodle switches from the menu
-	GripOffset = 0.6, -- how far from the noodle's end the hand holds it
 	GripSign = 1, -- set to -1 if noodles point backwards out of the hand
+
+	-- Saving
+	AutosaveInterval = 120,
 
 	-- Placeholder sounds from Roblox's built-in content. Swap in real foam / squeak sounds.
 	Sounds = {

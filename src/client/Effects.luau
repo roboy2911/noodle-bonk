@@ -1,8 +1,10 @@
 --!strict
--- Hit juice: sounds and pop-up "BONK!" text where a noodle lands.
+-- Hit juice: sounds, pop-up "BONK!" text, splashes, and ability visuals.
 
 local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
@@ -10,10 +12,25 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
+local CameraController = require(script.Parent.CameraController)
 
 local HIT_WORDS = { "BONK!", "BOING!", "WHAP!", "FWUMP!", "SPLOT!" }
+local WATER_COLOR = Color3.fromRGB(150, 220, 255)
+local TENTACLE_COLOR = Color3.fromRGB(120, 60, 160)
+
+local player = Players.LocalPlayer
 
 local Effects = {}
+
+local function effectPart(): Part
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	return part
+end
 
 -- Plays a sound, in 3D at `position` if given, otherwise flat for this player only.
 function Effects.playSound(soundId: string, position: Vector3?)
@@ -69,11 +86,106 @@ function Effects.popText(position: Vector3, text: string, color: Color3)
 	Debris:AddItem(attachment, 1)
 end
 
+-- A burst of water droplets at `position`.
+function Effects.splash(position: Vector3)
+	local part = effectPart()
+	part.Transparency = 1
+	part.Size = Vector3.new(4, 1, 4)
+	part.Position = position
+	part.Parent = workspace
+
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Color = ColorSequence.new(WATER_COLOR)
+	emitter.LightEmission = 0.3
+	emitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1.2),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	emitter.Transparency = NumberSequence.new(0.1, 1)
+	emitter.Lifetime = NumberRange.new(0.6, 1.1)
+	emitter.Speed = NumberRange.new(25, 45)
+	emitter.SpreadAngle = Vector2.new(35, 35)
+	emitter.Acceleration = Vector3.new(0, -80, 0)
+	emitter.Rate = 0
+	emitter.EmissionDirection = Enum.NormalId.Top
+	emitter.Parent = part
+	emitter:Emit(60)
+
+	Debris:AddItem(part, 2)
+end
+
+-- An expanding ring on the ground (Pogo slam).
+function Effects.shockwave(position: Vector3, radius: number)
+	local ring = effectPart()
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = WATER_COLOR
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.4, 2, 2)
+	-- Cylinders run along X; tip it on its side so it lies flat
+	ring.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+
+	TweenService:Create(ring, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.4, radius * 2, radius * 2),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.5)
+
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") and (root.Position - position).Magnitude < radius * 2 then
+		CameraController.shake(0.5)
+	end
+end
+
+-- A tentacle that shoots from one part to another, then retracts (Kraken).
+function Effects.tentacle(from: BasePart, to: BasePart)
+	local tentacle = effectPart()
+	tentacle.Shape = Enum.PartType.Cylinder
+	tentacle.Material = Enum.Material.SmoothPlastic
+	tentacle.Color = TENTACLE_COLOR
+	tentacle.Parent = workspace
+
+	local REACH_TIME, HOLD_TIME = 0.15, 0.25
+	local start = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.RenderStepped:Connect(function()
+		local elapsed = os.clock() - start
+		if elapsed > REACH_TIME + HOLD_TIME or not from.Parent or not to.Parent then
+			connection:Disconnect()
+			tentacle:Destroy()
+			return
+		end
+		local reach = math.clamp(elapsed / REACH_TIME, 0.05, 1)
+		local a = from.Position
+		local b = a:Lerp(to.Position, reach)
+		local length = (b - a).Magnitude
+		if length > 0.05 then
+			tentacle.Size = Vector3.new(length, 0.9, 0.9)
+			tentacle.CFrame = CFrame.lookAt((a + b) / 2, b) * CFrame.Angles(0, math.rad(90), 0)
+		end
+	end)
+end
+
 function Effects.start()
-	Remotes.HitConfirm.OnClientEvent:Connect(function(position: Vector3, noodleId: string)
+	Remotes.HitConfirm.OnClientEvent:Connect(function(position: Vector3, noodleId: string, attacker: Player?)
 		local def = Noodles[noodleId]
 		Effects.playSound(Config.Sounds.Bonk, position)
 		Effects.popText(position, HIT_WORDS[math.random(#HIT_WORDS)], if def then def.Color else Color3.new(1, 1, 1))
+		if attacker == player then
+			CameraController.shake(0.2)
+		end
+	end)
+
+	Remotes.AbilityFx.OnClientEvent:Connect(function(kind: string, a: any, b: any)
+		if kind == "Shockwave" and typeof(a) == "Vector3" and type(b) == "number" then
+			Effects.shockwave(a, b)
+		elseif kind == "Tentacle" and typeof(a) == "Instance" and typeof(b) == "Instance" then
+			if a:IsA("BasePart") and b:IsA("BasePart") then
+				Effects.tentacle(a, b)
+			end
+		end
 	end)
 end
 

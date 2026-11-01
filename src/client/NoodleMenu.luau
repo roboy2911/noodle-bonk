@@ -1,7 +1,8 @@
 --!strict
 -- Noodle picker. A button on the left side of the screen (or the N key)
--- opens a grid of every noodle with its stats. Clicking a card asks the
--- server to switch, and the card for your current noodle is highlighted.
+-- opens a grid of every noodle with its stats. Locked noodles show what it
+-- takes to unlock them and how close you are. Clicking an unlocked card asks
+-- the server to switch. A banner pops up whenever you unlock something new.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -12,6 +13,9 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
+local Unlocks = require(Shared.Unlocks)
+local BonkUI = require(script.Parent.BonkUI)
+local CameraController = require(script.Parent.CameraController)
 
 type NoodleDef = Noodles.NoodleDef
 
@@ -19,9 +23,11 @@ local TOGGLE_ACTION = "ToggleNoodleMenu"
 
 local PANEL_COLOR = Color3.fromRGB(22, 28, 44)
 local CARD_COLOR = Color3.fromRGB(36, 44, 66)
+local LOCKED_CARD_COLOR = Color3.fromRGB(28, 32, 44)
 local TRACK_COLOR = Color3.fromRGB(16, 20, 32)
 local TEXT_COLOR = Color3.new(1, 1, 1)
 local SUBTEXT_COLOR = Color3.fromRGB(180, 190, 210)
+local LOCKED_TEXT_COLOR = Color3.fromRGB(150, 155, 170)
 local EQUIPPED_COLOR = Color3.fromRGB(90, 230, 130)
 local BUTTON_COLOR = Color3.fromRGB(255, 105, 180)
 
@@ -29,12 +35,21 @@ local player = Players.LocalPlayer
 
 local NoodleMenu = {}
 
-type Card = { stroke: UIStroke, status: TextLabel }
+type Card = {
+	def: NoodleDef,
+	button: TextButton,
+	stroke: UIStroke,
+	status: TextLabel,
+	progressTrack: Frame,
+	progressFill: Frame,
+	locked: boolean,
+}
 
 local panel: Frame
 local panelScale: UIScale
 local cards: { [string]: Card } = {}
 local isOpen = false
+local knownUnlocked: { [string]: boolean }? = nil -- nil until saved data has loaded
 
 -- Helpers ----------------------------------------------------------------
 
@@ -57,32 +72,54 @@ local function label(parent: Instance, text: string, font: Enum.Font, size: numb
 	return l
 end
 
--- Noodles sorted with the default first, then alphabetically.
+local function bar(parent: Instance, color: Color3): (Frame, Frame)
+	local track = Instance.new("Frame")
+	track.BackgroundColor3 = TRACK_COLOR
+	track.BorderSizePixel = 0
+	track.Parent = parent
+	corner(track, 4)
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.fromScale(0, 1)
+	fill.BackgroundColor3 = color
+	fill.BorderSizePixel = 0
+	fill.Parent = track
+	corner(fill, 4)
+	return track, fill
+end
+
+-- Free noodles first, then by how hard they are to unlock.
 local function sortedNoodles(): { NoodleDef }
 	local list = {}
 	for _, def in Noodles do
 		table.insert(list, def)
 	end
+	local function rank(def: NoodleDef): number
+		if def.Id == Config.DefaultNoodle then
+			return -1
+		end
+		return if def.Unlock then def.Unlock.Amount else 0
+	end
 	table.sort(list, function(a, b)
-		if a.Id == Config.DefaultNoodle then
-			return true
-		elseif b.Id == Config.DefaultNoodle then
-			return false
+		local ra, rb = rank(a), rank(b)
+		if ra ~= rb then
+			return ra < rb
 		end
 		return a.DisplayName < b.DisplayName
 	end)
 	return list
 end
 
--- Stats are shown relative to the best noodle in each category.
-local function statMaxes(): (number, number, number)
-	local maxPower, fastestCooldown, maxReach = 0, math.huge, 0
+type StatRanges = { maxPower: number, maxReach: number, minStiffness: number }
+
+local function statRanges(): StatRanges
+	local ranges = { maxPower = 0, maxReach = 0, minStiffness = math.huge }
 	for _, def in Noodles do
-		maxPower = math.max(maxPower, def.Knockback)
-		fastestCooldown = math.min(fastestCooldown, def.Cooldown)
-		maxReach = math.max(maxReach, def.Range)
+		ranges.maxPower = math.max(ranges.maxPower, def.Knockback)
+		ranges.maxReach = math.max(ranges.maxReach, def.Length)
+		ranges.minStiffness = math.min(ranges.minStiffness, def.Stiffness)
 	end
-	return maxPower, fastestCooldown, maxReach
+	return ranges
 end
 
 -- UI -----------------------------------------------------------------------
@@ -97,51 +134,41 @@ local function statBar(parent: Instance, name: string, fraction: number, color: 
 	local text = label(row, name, Enum.Font.GothamBold, 12, SUBTEXT_COLOR)
 	text.Size = UDim2.new(0, 52, 1, 0)
 
-	local track = Instance.new("Frame")
+	local track, fill = bar(row, color)
 	track.AnchorPoint = Vector2.new(0, 0.5)
 	track.Position = UDim2.new(0, 56, 0.5, 0)
 	track.Size = UDim2.new(1, -56, 0, 8)
-	track.BackgroundColor3 = TRACK_COLOR
-	track.BorderSizePixel = 0
-	track.Parent = row
-	corner(track, 4)
-
-	local fill = Instance.new("Frame")
 	fill.Size = UDim2.fromScale(math.clamp(fraction, 0.08, 1), 1)
-	fill.BackgroundColor3 = color
-	fill.BorderSizePixel = 0
-	fill.Parent = track
-	corner(fill, 4)
 end
 
-local function buildCard(parent: Instance, def: NoodleDef, order: number, maxes: { number })
-	local card = Instance.new("TextButton")
-	card.Name = def.Id
-	card.Text = ""
-	card.AutoButtonColor = false
-	card.BackgroundColor3 = CARD_COLOR
-	card.LayoutOrder = order
-	card.Parent = parent
-	corner(card, 12)
+local function buildCard(parent: Instance, def: NoodleDef, order: number, ranges: StatRanges)
+	local button = Instance.new("TextButton")
+	button.Name = def.Id
+	button.Text = ""
+	button.AutoButtonColor = false
+	button.BackgroundColor3 = CARD_COLOR
+	button.LayoutOrder = order
+	button.Parent = parent
+	corner(button, 12)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Color = EQUIPPED_COLOR
 	stroke.Thickness = 3
 	stroke.Enabled = false
-	stroke.Parent = card
+	stroke.Parent = button
 
 	local padding = Instance.new("UIPadding")
 	padding.PaddingTop = UDim.new(0, 10)
 	padding.PaddingBottom = UDim.new(0, 10)
 	padding.PaddingLeft = UDim.new(0, 12)
 	padding.PaddingRight = UDim.new(0, 12)
-	padding.Parent = card
+	padding.Parent = button
 
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Padding = UDim.new(0, 5)
-	layout.Parent = card
+	layout.Parent = button
 
 	-- A stripe in the noodle's color stands in for a preview
 	local swatch = Instance.new("Frame")
@@ -149,51 +176,107 @@ local function buildCard(parent: Instance, def: NoodleDef, order: number, maxes:
 	swatch.BackgroundColor3 = def.Color
 	swatch.BorderSizePixel = 0
 	swatch.LayoutOrder = 1
-	swatch.Parent = card
+	swatch.Parent = button
 	corner(swatch, 6)
 
-	label(card, def.DisplayName, Enum.Font.FredokaOne, 20, TEXT_COLOR).LayoutOrder = 2
+	label(button, def.DisplayName, Enum.Font.FredokaOne, 20, TEXT_COLOR).LayoutOrder = 2
 
-	local desc = label(card, def.Description, Enum.Font.Gotham, 12, SUBTEXT_COLOR)
+	local desc = label(button, def.Description, Enum.Font.Gotham, 12, SUBTEXT_COLOR)
 	desc.Size = UDim2.new(1, 0, 0, 30)
 	desc.TextWrapped = true
 	desc.TextYAlignment = Enum.TextYAlignment.Top
 	desc.LayoutOrder = 3
 
-	local maxPower, fastestCooldown, maxReach = maxes[1], maxes[2], maxes[3]
-	statBar(card, "Power", def.Knockback / maxPower, Color3.fromRGB(255, 110, 110), 4)
-	statBar(card, "Speed", fastestCooldown / def.Cooldown, Color3.fromRGB(255, 220, 90), 5)
-	statBar(card, "Reach", def.Range / maxReach, Color3.fromRGB(110, 190, 255), 6)
+	statBar(button, "Power", def.Knockback / ranges.maxPower, Color3.fromRGB(255, 110, 110), 4)
+	statBar(button, "Reach", def.Length / ranges.maxReach, Color3.fromRGB(110, 190, 255), 5)
+	statBar(button, "Flop", ranges.minStiffness / def.Stiffness, Color3.fromRGB(255, 220, 90), 6)
 
-	local abilityText = if def.Ability then `Ability: {def.Ability} [E]` else "No ability"
-	local ability = label(card, abilityText, Enum.Font.GothamBold, 12, if def.Ability then def.Color else SUBTEXT_COLOR)
-	ability.LayoutOrder = 7
+	local status = label(button, "", Enum.Font.GothamBold, 12, SUBTEXT_COLOR)
+	status.TextWrapped = true
+	status.Size = UDim2.new(1, 0, 0, 28)
+	status.LayoutOrder = 7
 
-	local status = label(card, "EQUIPPED", Enum.Font.FredokaOne, 16, EQUIPPED_COLOR)
-	status.LayoutOrder = 8
-	status.Visible = false
+	local progressTrack, progressFill = bar(button, def.Color)
+	progressTrack.Size = UDim2.new(1, 0, 0, 6)
+	progressTrack.LayoutOrder = 8
 
-	card.MouseEnter:Connect(function()
-		TweenService:Create(card, TweenInfo.new(0.1), { BackgroundColor3 = CARD_COLOR:Lerp(def.Color, 0.15) }):Play()
+	local card: Card = {
+		def = def,
+		button = button,
+		stroke = stroke,
+		status = status,
+		progressTrack = progressTrack,
+		progressFill = progressFill,
+		locked = false,
+	}
+	cards[def.Id] = card
+
+	button.MouseEnter:Connect(function()
+		local base = if card.locked then LOCKED_CARD_COLOR else CARD_COLOR
+		TweenService:Create(button, TweenInfo.new(0.1), { BackgroundColor3 = base:Lerp(def.Color, 0.15) }):Play()
 	end)
-	card.MouseLeave:Connect(function()
-		TweenService:Create(card, TweenInfo.new(0.1), { BackgroundColor3 = CARD_COLOR }):Play()
+	button.MouseLeave:Connect(function()
+		local base = if card.locked then LOCKED_CARD_COLOR else CARD_COLOR
+		TweenService:Create(button, TweenInfo.new(0.1), { BackgroundColor3 = base }):Play()
 	end)
-	card.Activated:Connect(function()
+	button.Activated:Connect(function()
+		if card.locked then
+			-- Little wiggle to say "not yet"
+			button.Rotation = 3
+			TweenService:Create(button, TweenInfo.new(0.3, Enum.EasingStyle.Elastic), { Rotation = 0 }):Play()
+			return
+		end
 		Remotes.SelectNoodle:FireServer(def.Id)
 		NoodleMenu.setOpen(false)
 	end)
-
-	cards[def.Id] = { stroke = stroke, status = status }
 end
 
-local function refreshEquipped()
+local function refresh()
+	local stats = Unlocks.readStats(player)
 	local current = player:GetAttribute("Noodle")
 	for id, card in cards do
-		local equipped = id == current
+		local unlocked = Unlocks.isUnlocked(card.def, stats)
+		local equipped = unlocked and id == current
+		card.locked = not unlocked
+		card.button.BackgroundColor3 = if unlocked then CARD_COLOR else LOCKED_CARD_COLOR
 		card.stroke.Enabled = equipped
-		card.status.Visible = equipped
+		card.progressTrack.Visible = not unlocked
+		card.progressFill.Size = UDim2.fromScale(Unlocks.progress(card.def, stats), 1)
+
+		if equipped then
+			card.status.Text = "EQUIPPED"
+			card.status.TextColor3 = EQUIPPED_COLOR
+		elseif unlocked then
+			card.status.Text = if card.def.Ability then `Ability: {card.def.Ability} [E]` else "Click to equip"
+			card.status.TextColor3 = SUBTEXT_COLOR
+		else
+			card.status.Text = `LOCKED: {Unlocks.describe(card.def, stats)}`
+			card.status.TextColor3 = LOCKED_TEXT_COLOR
+		end
 	end
+end
+
+-- Pops a banner for anything that just became unlocked.
+local function checkNewUnlocks()
+	if not player:GetAttribute("DataLoaded") then
+		return
+	end
+	local stats = Unlocks.readStats(player)
+	local nowUnlocked: { [string]: boolean } = {}
+	for id, def in Noodles do
+		nowUnlocked[id] = Unlocks.isUnlocked(def, stats)
+	end
+
+	local known = knownUnlocked
+	if known then
+		for id, unlocked in nowUnlocked do
+			if unlocked and not known[id] then
+				BonkUI.showBanner(`UNLOCKED: {Noodles[id].DisplayName}!`, Noodles[id].Color)
+			end
+		end
+	end
+	-- The first check after loading just records what they already had
+	knownUnlocked = nowUnlocked
 end
 
 local function build()
@@ -234,7 +317,7 @@ local function build()
 	corner(panel, 18)
 
 	local sizeLimit = Instance.new("UISizeConstraint")
-	sizeLimit.MaxSize = Vector2.new(760, 580)
+	sizeLimit.MaxSize = Vector2.new(760, 600)
 	sizeLimit.Parent = panel
 
 	panelScale = Instance.new("UIScale")
@@ -271,7 +354,7 @@ local function build()
 	scroller.Parent = panel
 
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromOffset(220, 210)
+	grid.CellSize = UDim2.fromOffset(220, 236)
 	grid.CellPadding = UDim2.fromOffset(12, 12)
 	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
@@ -282,9 +365,9 @@ local function build()
 	gridPadding.PaddingBottom = UDim.new(0, 4)
 	gridPadding.Parent = scroller
 
-	local maxPower, fastestCooldown, maxReach = statMaxes()
+	local ranges = statRanges()
 	for i, def in sortedNoodles() do
-		buildCard(scroller, def, i, { maxPower, fastestCooldown, maxReach })
+		buildCard(scroller, def, i, ranges)
 	end
 
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -294,8 +377,9 @@ end
 
 function NoodleMenu.setOpen(open: boolean)
 	isOpen = open
+	CameraController.setMenuOpen(open)
 	if open then
-		refreshEquipped()
+		refresh()
 		panel.Visible = true
 		panelScale.Scale = 0.85
 		TweenService:Create(panelScale, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
@@ -308,8 +392,20 @@ end
 
 function NoodleMenu.start()
 	build()
-	refreshEquipped()
-	player:GetAttributeChangedSignal("Noodle"):Connect(refreshEquipped)
+	refresh()
+	checkNewUnlocks()
+
+	player:GetAttributeChangedSignal("Noodle"):Connect(refresh)
+	player:GetAttributeChangedSignal("DataLoaded"):Connect(function()
+		checkNewUnlocks()
+		refresh()
+	end)
+	for _, stat in Unlocks.STATS do
+		player:GetAttributeChangedSignal(Unlocks.statAttribute(stat)):Connect(function()
+			checkNewUnlocks()
+			refresh()
+		end)
+	end
 
 	ContextActionService:BindAction(TOGGLE_ACTION, function(_, inputState)
 		if inputState == Enum.UserInputState.Begin then

@@ -67,7 +67,8 @@ local function build()
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 
-local function showBanner(text: string, color: Color3)
+-- Big centered text that slams in, then fades. Other UI uses it too (unlocks).
+function BonkUI.showBanner(text: string, color: Color3)
 	bannerToken += 1
 	local token = bannerToken
 
@@ -156,11 +157,12 @@ local function onBonked(info: { [string]: any })
 	end
 
 	Effects.playSound(Config.Sounds.Splash, position)
+	Effects.splash(Vector3.new(position.X, Config.WaterLevel, position.Z))
 
 	if victim == player then
-		showBanner(if attacker then `BONKED by {attacker.DisplayName}!` else "SPLASH! You fell in.", GOT_BONKED_COLOR)
+		BonkUI.showBanner(if attacker then `BONKED by {attacker.DisplayName}!` else "SPLASH! You fell in.", GOT_BONKED_COLOR)
 	elseif attacker == player then
-		showBanner(`BONKED {victimName}!`, DID_BONK_COLOR)
+		BonkUI.showBanner(`BONKED {victimName}!`, DID_BONK_COLOR)
 	end
 end
 

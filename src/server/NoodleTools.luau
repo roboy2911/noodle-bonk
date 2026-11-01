@@ -1,23 +1,22 @@
 --!strict
 -- Builds noodle Tools and hands them out on spawn.
 --
--- The noodle a player gets comes from the "Noodle" attribute on their Player.
--- Changing it (from a shop, a badge reward, or the Properties panel while
--- testing) gives them the new noodle right away.
+-- The Tool itself is just an invisible handle in the hand. Every client draws
+-- the bendy noodle on top of it (client/NoodleVisuals).
 --
--- For custom models, put a Tool named after the noodle Id in
--- ServerStorage/NoodleModels (e.g. ServerStorage/NoodleModels/Frozen).
--- Otherwise a plain foam cylinder is built.
+-- The noodle a player gets comes from the "Noodle" attribute on their Player,
+-- which is loaded from their save and changed through the noodle menu.
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
+local Unlocks = require(Shared.Unlocks)
+local DataService = require(script.Parent.DataService)
 
 type NoodleDef = Noodles.NoodleDef
 
@@ -25,53 +24,25 @@ local NoodleTools = {}
 
 local lastSelect: { [Player]: number } = {}
 
-local function makeNonPhysical(part: BasePart)
-	part.CanCollide = false
-	part.CanTouch = false
-	part.CanQuery = false
-	part.Massless = true
-end
-
-local function buildFoamNoodle(def: NoodleDef): Tool
+local function buildTool(def: NoodleDef): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = def.DisplayName
 	tool.RequiresHandle = true
+	tool.CanBeDropped = false
+	tool.Grip = CFrame.new()
+	tool:SetAttribute("NoodleId", def.Id)
+	tool:SetAttribute("Scale", 1)
 
-	-- Invisible handle running along Z, which is the direction a tool points out of the hand
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(def.Thickness, def.Thickness, def.Length)
+	handle.Size = Vector3.new(def.Thickness, def.Thickness, 1)
 	handle.Transparency = 1
-	makeNonPhysical(handle)
+	handle.CanCollide = false
+	handle.CanTouch = false
+	handle.CanQuery = false
+	handle.Massless = true
 	handle.Parent = tool
 
-	-- Cylinders run along X, so turn the foam 90 degrees to line it up with the handle
-	local foam = Instance.new("Part")
-	foam.Name = "Foam"
-	foam.Shape = Enum.PartType.Cylinder
-	foam.Size = Vector3.new(def.Length, def.Thickness, def.Thickness)
-	foam.Color = def.Color
-	foam.Material = Enum.Material.SmoothPlastic
-	makeNonPhysical(foam)
-	foam.CFrame = handle.CFrame * CFrame.Angles(0, math.rad(90), 0)
-	foam.Parent = tool
-
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = handle
-	weld.Part1 = foam
-	weld.Parent = handle
-
-	-- Hold it near one end so most of the noodle sticks out in front
-	tool.Grip = CFrame.new(0, 0, Config.GripSign * (def.Length / 2 - Config.GripOffset))
-	return tool
-end
-
-local function buildTool(def: NoodleDef): Tool
-	local models = ServerStorage:FindFirstChild("NoodleModels")
-	local template = models and models:FindFirstChild(def.Id)
-	local tool = if template and template:IsA("Tool") then template:Clone() else buildFoamNoodle(def)
-	tool.CanBeDropped = false
-	tool:SetAttribute("NoodleId", def.Id)
 	return tool
 end
 
@@ -86,10 +57,18 @@ local function removeNoodles(container: Instance?)
 	end
 end
 
+-- Whether the player has unlocked this noodle.
+function NoodleTools.canUse(player: Player, id: string): boolean
+	local def = Noodles[id]
+	return def ~= nil and Unlocks.isUnlocked(def, Unlocks.readStats(player))
+end
+
 function NoodleTools.getNoodleDef(player: Player): NoodleDef
 	local id = player:GetAttribute("Noodle")
-	local def = if type(id) == "string" then Noodles[id] else nil
-	return def or Noodles[Config.DefaultNoodle]
+	if type(id) == "string" and NoodleTools.canUse(player, id) then
+		return Noodles[id]
+	end
+	return Noodles[Config.DefaultNoodle]
 end
 
 -- Replaces whatever noodle the player has with their current one and equips it.
@@ -116,6 +95,22 @@ function NoodleTools.give(player: Player)
 	humanoid:EquipTool(tool)
 end
 
+-- A pick from the noodle menu. Setting the attribute triggers give().
+local function onSelectNoodle(player: Player, id: unknown)
+	if type(id) ~= "string" or not NoodleTools.canUse(player, id) then
+		return
+	end
+	local now = os.clock()
+	if now - (lastSelect[player] or 0) < Config.SelectCooldown then
+		return
+	end
+	lastSelect[player] = now
+	DataService.setSelected(player, id)
+	if player:GetAttribute("Noodle") ~= id then
+		player:SetAttribute("Noodle", id)
+	end
+end
+
 local function onCharacterAdded(player: Player, character: Model)
 	if not character:FindFirstChildOfClass("ForceField") then
 		local forceField = Instance.new("ForceField")
@@ -128,9 +123,6 @@ local function onCharacterAdded(player: Player, character: Model)
 end
 
 local function onPlayerAdded(player: Player)
-	if player:GetAttribute("Noodle") == nil then
-		player:SetAttribute("Noodle", Config.DefaultNoodle)
-	end
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
@@ -140,26 +132,11 @@ local function onPlayerAdded(player: Player)
 	if player.Character then
 		task.spawn(onCharacterAdded, player, player.Character)
 	end
-end
 
--- Whether the player may use this noodle. Every noodle is free for now;
--- unlock, badge and gamepass checks go here later.
-function NoodleTools.canUse(_player: Player, id: string): boolean
-	return Noodles[id] ~= nil
-end
-
--- A pick from the noodle menu. Setting the attribute triggers give() above.
-local function onSelectNoodle(player: Player, id: unknown)
-	if type(id) ~= "string" or not NoodleTools.canUse(player, id) then
-		return
-	end
-	local now = os.clock()
-	if now - (lastSelect[player] or 0) < Config.SelectCooldown then
-		return
-	end
-	lastSelect[player] = now
-	if player:GetAttribute("Noodle") ~= id then
-		player:SetAttribute("Noodle", id)
+	-- Restore their saved noodle once their data (and unlock stats) is in
+	local data = DataService.waitForData(player)
+	if data and player.Parent then
+		player:SetAttribute("Noodle", if NoodleTools.canUse(player, data.Selected) then data.Selected else Config.DefaultNoodle)
 	end
 end
 

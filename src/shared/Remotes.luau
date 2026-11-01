@@ -4,8 +4,18 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+-- Sent to a victim's client through Remotes.Knockback
+export type KnockbackInfo = {
+	velocity: Vector3,
+	ragdollTime: number, -- 0 = launch without flopping
+	stunTime: number?,
+	float: { velocity: Vector3, time: number }?, -- hold this velocity for a while (bubble)
+	shake: number?, -- camera shake strength
+}
+
 local FOLDER_NAME = "NoodleRemotes"
-local EVENT_NAMES = { "Swing", "UseAbility", "Knockback", "HitConfirm", "Bonked", "SelectNoodle" }
+local EVENT_NAMES =
+	{ "NoodleHit", "UseAbility", "Knockback", "HitConfirm", "Bonked", "SelectNoodle", "AbilityFx" }
 
 local folder: Instance
 if RunService:IsServer() then
@@ -28,16 +38,19 @@ local function get(name: string): RemoteEvent
 end
 
 return {
-	-- client -> server: (targets: { Model }) the characters the client thinks it hit
-	Swing = get("Swing"),
+	-- client -> server: (target: Model, hitPosition: Vector3, direction: Vector3, speed: number)
+	-- the attacker's noodle touched someone
+	NoodleHit = get("NoodleHit"),
 	-- client -> server: ()
 	UseAbility = get("UseAbility"),
-	-- server -> victim's client: (velocity: Vector3, ragdollTime: number, stunTime: number?)
+	-- server -> victim's client: (info: KnockbackInfo)
 	Knockback = get("Knockback"),
-	-- server -> all clients: (position: Vector3, noodleId: string) for hit effects
+	-- server -> all clients: (position: Vector3, noodleId: string, attacker: Player?) for hit effects
 	HitConfirm = get("HitConfirm"),
 	-- server -> all clients: (info: BonkInfo) see BonkTracker
 	Bonked = get("Bonked"),
 	-- client -> server: (noodleId: string) picked from the noodle menu
 	SelectNoodle = get("SelectNoodle"),
+	-- server -> all clients: (kind: string, ...) ability visuals, see client/Effects
+	AbilityFx = get("AbilityFx"),
 }
