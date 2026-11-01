@@ -32,23 +32,34 @@ local function effectPart(): Part
 	return part
 end
 
--- Plays a sound, in 3D at `position` if given, otherwise flat for this player only.
-function Effects.playSound(soundId: string, position: Vector3?)
+-- Plays a sound from Config.Sounds by name, in 3D at `position` if given,
+-- otherwise flat for this player only.
+function Effects.playSound(name: string, position: Vector3?)
+	local entry = Config.Sounds[name]
+	if not entry or #entry.Ids == 0 then
+		warn(`[Noodle Bonk] No sound named {name} in Config.Sounds`)
+		return
+	end
 	local sound = Instance.new("Sound")
-	sound.SoundId = soundId
-	sound.Volume = 0.8
-	sound.PlaybackSpeed = 0.9 + math.random() * 0.2 -- slight variety so repeats don't grate
+	sound.SoundId = `rbxassetid://{entry.Ids[math.random(#entry.Ids)]}`
+	sound.Volume = entry.Volume
+	sound.PlaybackSpeed = 0.95 + math.random() * 0.1 -- slight variety so repeats don't grate
+	sound.RollOffMaxDistance = 250
 
+	local holder: Instance = sound
 	if position then
 		local attachment = Instance.new("Attachment")
 		attachment.Position = position
 		attachment.Parent = workspace.Terrain
 		sound.Parent = attachment
-		Debris:AddItem(attachment, 4)
+		holder = attachment
 	else
 		sound.Parent = SoundService
-		Debris:AddItem(sound, 4)
 	end
+	sound.Ended:Once(function()
+		holder:Destroy()
+	end)
+	Debris:AddItem(holder, 30) -- in case it never loads
 	sound:Play()
 end
 
@@ -171,7 +182,8 @@ end
 function Effects.start()
 	Remotes.HitConfirm.OnClientEvent:Connect(function(position: Vector3, noodleId: string, attacker: Player?)
 		local def = Noodles[noodleId]
-		Effects.playSound(Config.Sounds.Bonk, position)
+		Effects.playSound("Hit", position)
+		Effects.playSound("HitBoink", position)
 		Effects.popText(position, HIT_WORDS[math.random(#HIT_WORDS)], if def then def.Color else Color3.new(1, 1, 1))
 		if attacker == player then
 			CameraController.shake(0.2)
@@ -179,7 +191,9 @@ function Effects.start()
 	end)
 
 	Remotes.AbilityFx.OnClientEvent:Connect(function(kind: string, a: any, b: any)
-		if kind == "Shockwave" and typeof(a) == "Vector3" and type(b) == "number" then
+		if kind == "Sound" and type(a) == "string" then
+			Effects.playSound(a, if typeof(b) == "Vector3" then b else nil)
+		elseif kind == "Shockwave" and typeof(a) == "Vector3" and type(b) == "number" then
 			Effects.shockwave(a, b)
 		elseif kind == "Tentacle" and typeof(a) == "Instance" and typeof(b) == "Instance" then
 			if a:IsA("BasePart") and b:IsA("BasePart") then

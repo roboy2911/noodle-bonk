@@ -137,6 +137,9 @@ end
 function CombatService.popBubble(target: Model)
 	local root = target:FindFirstChild("HumanoidRootPart")
 	local bubble = root and root:FindFirstChild("NoodleBubble")
+	if bubble and root and root:IsA("BasePart") then
+		Remotes.AbilityFx:FireAllClients("Sound", "BubblePop", root.Position)
+	end
 	if bubble then
 		bubble:Destroy()
 	end

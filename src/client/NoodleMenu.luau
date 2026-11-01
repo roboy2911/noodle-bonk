@@ -15,6 +15,7 @@ local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local Unlocks = require(Shared.Unlocks)
 local BonkUI = require(script.Parent.BonkUI)
+local Effects = require(script.Parent.Effects)
 local CameraController = require(script.Parent.CameraController)
 
 type NoodleDef = Noodles.NoodleDef
@@ -226,6 +227,7 @@ local function buildCard(parent: Instance, def: NoodleDef, order: number, ranges
 			TweenService:Create(button, TweenInfo.new(0.3, Enum.EasingStyle.Elastic), { Rotation = 0 }):Play()
 			return
 		end
+		Effects.playSound("Click")
 		Remotes.SelectNoodle:FireServer(def.Id)
 		NoodleMenu.setOpen(false)
 	end)
@@ -271,6 +273,7 @@ local function checkNewUnlocks()
 	if known then
 		for id, unlocked in nowUnlocked do
 			if unlocked and not known[id] then
+				Effects.playSound("Unlock")
 				BonkUI.showBanner(`UNLOCKED: {Noodles[id].DisplayName}!`, Noodles[id].Color)
 			end
 		end
@@ -376,6 +379,9 @@ end
 -- Public -------------------------------------------------------------------
 
 function NoodleMenu.setOpen(open: boolean)
+	if open ~= isOpen then
+		Effects.playSound("Click")
+	end
 	isOpen = open
 	CameraController.setCursorFree("NoodleMenu", open)
 	if open then

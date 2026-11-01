@@ -92,7 +92,7 @@ local function onLocalStep(visual: NoodleVisuals.Visual, dt: number)
 
 	if fastest >= Config.WhooshSpeed and now - lastWhoosh > WHOOSH_GAP then
 		lastWhoosh = now
-		Effects.playSound(Config.Sounds.Swing)
+		Effects.playSound("Swing")
 	end
 end
 

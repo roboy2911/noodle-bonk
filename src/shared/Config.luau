@@ -82,11 +82,33 @@ local Config = {
 	AdminUserIds = {} :: { number },
 	RescuePosition = Vector3.new(0, 6, 0), -- where god-mode players land instead of getting bonked
 
-	-- Placeholder sounds from Roblox's built-in content. Swap in real foam / squeak sounds.
+	-- Sound effects from Roblox's licensed ProSoundEffects library (free to use
+	-- in any game). Each sound picks one of its Ids at random so repeats don't
+	-- sound identical. Play them by name with Effects.playSound("Hit").
 	Sounds = {
-		Swing = "rbxasset://sounds/swordslash.wav",
-		Bonk = "rbxasset://sounds/swordlunge.wav",
-		Splash = "rbxasset://sounds/impact_water.mp3",
+		Swing = { Ids = { 9120972444, 9120972457, 9120972323, 9120972321, 9120972724 }, Volume = 0.45 }, -- Wood Whoosh Quick Swings
+		Hit = { Ids = { 9114183180, 9114183700, 9114183696, 9114183750, 9114183827 }, Volume = 0.9 }, -- Drips Pillow Hits Wet
+		HitBoink = { Ids = { 9113854234, 9113854411, 9113854388, 9113854393, 9113854527 }, Volume = 0.5 }, -- Comic Boinks
+		Splash = { Ids = { 9120589380, 9120589559 }, Volume = 0.8 }, -- Water Splash Jumping In Pool
+		Launched = { Ids = { 9119197896, 9119197913 }, Volume = 0.6 }, -- Slide Whistle
+		Boing = { Ids = { 9113854528 }, Volume = 0.8 }, -- Comic Boinks 6
+		Slam = { Ids = { 9113524242 }, Volume = 0.9 }, -- Body Impact 3
+		BubbleTrap = { Ids = { 9125409840 }, Volume = 0.8 }, -- Bubbles Small Underwater
+		BubblePop = { Ids = { 9113263454 }, Volume = 0.8 }, -- Balloon Pop 1
+		Tentacle = { Ids = { 9119990452 }, Volume = 0.9 }, -- Tentacle Slime 1
+		Lash = { Ids = { 9113612888 }, Volume = 0.8 }, -- Buggy Whip Quick Swish Crack
+		Inflate = { Ids = { 9120286427 }, Volume = 0.6 }, -- Tubular Whoosh Rise
+		Streak = { Ids = { 9116394545 }, Volume = 0.8 }, -- Magic Glows Chiming Hits
+		StreakEnded = { Ids = { 9120974378 }, Volume = 0.6 }, -- Wrestling Crowd 3
+		Unlock = { Ids = { 9126073001 }, Volume = 0.8 }, -- Synth Sparkle Bell Ding
+		Click = { Ids = { 9119717529 }, Volume = 0.5 }, -- Switch Click Toggle
+		Announcement = { Ids = { 9114402205 }, Volume = 0.6 }, -- Dual Air Horns
+	} :: { [string]: { Ids: { number }, Volume: number } },
+
+	-- Background music from Roblox's licensed APM library. Plays in a shuffled loop.
+	Music = {
+		Ids = { 1837779005, 1840735251, 9043828544 }, -- Beach Party, Pool Party, Maui Beach
+		Volume = 0.2,
 	},
 }
 

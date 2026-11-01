@@ -35,6 +35,7 @@ Access to API Services**. Without it the game runs, but progress resets each ses
 | N / NOODLES button | Noodle menu |
 | Ctrl | Free the mouse cursor (also freed automatically in menus and chat) |
 | P / ADMIN button | Admin panel (admins only) |
+| M / MUSIC button | Music on/off |
 
 ## Layout
 
@@ -165,6 +166,30 @@ Risky buttons (kick, ban, reset data, respawn everyone, shut down) need a
 second click within 3 seconds. Bans use Roblox's ban API, which only works in
 a live game, not in Studio.
 
+## Sounds and music
+
+All audio comes from Roblox's own licensed libraries, which are free to use
+in any game: **ProSoundEffects** for effects and **APM** for music. Everything
+is listed by name in `Config.Sounds` and `Config.Music`. To swap a sound,
+change its Ids (each sound picks one of its Ids at random) or its Volume. Play
+one from client code with `Effects.playSound("Name", position?)`.
+
+| Sound | Plays when |
+|---|---|
+| Swing | your noodle whooshes fast |
+| Hit + HitBoink | a noodle lands a hit (wet foam thwack + cartoon boink) |
+| Splash | someone falls in the pool |
+| Launched | you get bonked (slide whistle) |
+| Boing / Slam | Spring and Pogo bounce, Pogo landing |
+| BubbleTrap / BubblePop | Bubble ability starts / pops |
+| Tentacle / Lash / Inflate | Kraken, Whip and Inflatable abilities |
+| Streak / StreakEnded | you hit a streak tier / end someone's streak |
+| Unlock | you unlock a noodle |
+| Click | menu and panel buttons |
+| Announcement | admin announcement (air horn) |
+
+Music shuffles through Beach Party, Pool Party and Maui Beach at low volume.
+
 ## Tuning tips
 
 - **Hits feel too hard to land:** lower `MinHitSpeed` or raise `HitPadding`.
@@ -174,7 +199,6 @@ a live game, not in Studio.
 
 ## Known gaps / next steps
 
-- **Placeholder sounds** in `Config.Sounds`. Swap in squeaky foam and splash sounds.
 - **Client-applied knockback.** The victim's client applies its own launch, so
   an exploiter could ignore it. Server-side position checks can come later.
 - **Jump bonks.** Jumping moves your noodle fast enough to hit people

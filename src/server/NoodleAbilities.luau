@@ -27,6 +27,11 @@ local function flat(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
 end
 
+-- Plays a Config.Sounds entry for everyone, at a spot in the world.
+local function sound(name: string, position: Vector3)
+	Remotes.AbilityFx:FireAllClients("Sound", name, position)
+end
+
 -- Closest unprotected living target in front of the user, and its root.
 local function findTarget(ctx: AbilityContext, range: number, arcDeg: number): (Model?, BasePart?)
 	local target = HitQuery.findTargets(ctx.character, range, arcDeg, 1)[1]
@@ -42,6 +47,7 @@ end
 
 -- Spring: bounce yourself high into the air to dodge or drop onto someone.
 Abilities.Boing = function(ctx)
+	sound("Boing", ctx.root.Position)
 	Remotes.Knockback:FireClient(ctx.player, {
 		velocity = ctx.root.CFrame.LookVector * 35 + Vector3.yAxis * 95,
 		ragdollTime = 0,
@@ -58,6 +64,7 @@ Abilities.Lash = function(ctx)
 	if pull.Magnitude < 1 then
 		return
 	end
+	sound("Lash", targetRoot.Position)
 	ctx.combat.applyKnockback(target, {
 		velocity = pull.Unit * math.min(pull.Magnitude * 4, 80) + Vector3.yAxis * 30,
 		ragdollTime = 0.6,
@@ -71,6 +78,7 @@ local POGO_RADIUS = 14
 local POGO_POWER = 65
 
 Abilities.PogoSlam = function(ctx)
+	sound("Boing", ctx.root.Position)
 	Remotes.Knockback:FireClient(ctx.player, {
 		velocity = ctx.root.CFrame.LookVector * 20 + Vector3.yAxis * 85,
 		ragdollTime = 0,
@@ -97,6 +105,7 @@ Abilities.PogoSlam = function(ctx)
 		end
 
 		local center = ctx.root.Position
+		sound("Slam", center)
 		Remotes.AbilityFx:FireAllClients("Shockwave", center - Vector3.new(0, 2.5, 0), POGO_RADIUS)
 		for _, target in HitQuery.findTargets(ctx.character, POGO_RADIUS, 360, 10) do
 			local _, targetRoot = ctx.combat.getLiving(target)
@@ -140,7 +149,14 @@ Abilities.BubbleTrap = function(ctx)
 	bubble.Parent = targetRoot
 	Debris:AddItem(bubble, BUBBLE_TIME)
 
+	sound("BubbleTrap", targetRoot.Position)
 	target:SetAttribute("Bubbled", true)
+	task.delay(BUBBLE_TIME, function()
+		-- Pop at the end, unless a hit already popped it
+		if targetRoot:FindFirstChild("NoodleBubble") then
+			sound("BubblePop", targetRoot.Position)
+		end
+	end)
 	task.delay(BUBBLE_TIME + 0.05, function()
 		if not targetRoot:FindFirstChild("NoodleBubble") then
 			target:SetAttribute("Bubbled", nil)
@@ -164,6 +180,7 @@ Abilities.Tentacle = function(ctx)
 	if not target or not targetRoot then
 		return
 	end
+	sound("Tentacle", ctx.root.Position)
 	Remotes.AbilityFx:FireAllClients("Tentacle", ctx.root, targetRoot)
 	task.wait(0.15) -- let the tentacle reach them first
 	if not targetRoot.Parent or not ctx.root.Parent then
@@ -177,6 +194,7 @@ end
 -- hits. The size is a Tool attribute, so every client draws it bigger.
 Abilities.Inflate = function(ctx)
 	local tool = ctx.tool
+	sound("Inflate", ctx.root.Position)
 	tool:SetAttribute("Scale", Config.InflateScale)
 	task.delay(Config.InflateTime, function()
 		if tool.Parent then

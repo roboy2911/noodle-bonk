@@ -179,15 +179,18 @@ local function onBonked(info: { [string]: any })
 		addFeedEntry(`{name} {milestoneTitle}! {streak} bonks in a row`, milestoneColor)
 	end
 
-	Effects.playSound(Config.Sounds.Splash, position)
+	Effects.playSound("Splash", Vector3.new(position.X, Config.WaterLevel, position.Z))
 	Effects.splash(Vector3.new(position.X, Config.WaterLevel, position.Z))
 
 	if victim == player then
+		Effects.playSound("Launched")
 		BonkUI.showBanner(if attacker then `BONKED by {attacker.DisplayName}!` else "SPLASH! You fell in.", GOT_BONKED_COLOR)
 	elseif attacker == player then
 		if milestoneTitle and streak then
+			Effects.playSound("Streak")
 			BonkUI.showBanner(`{milestoneTitle}! {streak} STREAK`, milestoneColor, 2.5)
 		elseif endedStreak and bonus then
+			Effects.playSound("StreakEnded")
 			BonkUI.showBanner(`STREAK ENDED! +{bonus} BONKS`, STREAK_END_COLOR, 2.5)
 		else
 			BonkUI.showBanner(`BONKED {victimName}!`, DID_BONK_COLOR)
@@ -199,6 +202,7 @@ function BonkUI.start()
 	build()
 	Remotes.Bonked.OnClientEvent:Connect(onBonked)
 	Remotes.Announcement.OnClientEvent:Connect(function(text: string, from: string)
+		Effects.playSound("Announcement")
 		BonkUI.showBanner(text, ANNOUNCEMENT_COLOR, 5)
 		addFeedEntry(`[ADMIN] {from}: {text}`)
 	end)

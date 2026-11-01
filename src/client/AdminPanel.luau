@@ -17,6 +17,7 @@ local Shared = ReplicatedStorage.Shared
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local CameraController = require(script.Parent.CameraController)
+local Effects = require(script.Parent.Effects)
 
 local TOGGLE_ACTION = "ToggleAdminPanel"
 local PANEL_SIZE = Vector2.new(660, 500)
@@ -83,6 +84,9 @@ local function makeButton(parent: Instance, text: string, color: Color3?, width:
 	button.AutoButtonColor = true
 	button.Parent = parent
 	corner(button, 8)
+	button.Activated:Connect(function()
+		Effects.playSound("Click")
+	end)
 	return button
 end
 

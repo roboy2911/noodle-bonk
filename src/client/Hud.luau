@@ -76,7 +76,7 @@ local function build()
 	local hint = Instance.new("TextLabel")
 	hint.AnchorPoint = Vector2.new(0, 1)
 	hint.Position = UDim2.new(0, 16, 1, -16)
-	hint.Size = UDim2.fromOffset(420, 20)
+	hint.Size = UDim2.fromOffset(480, 20)
 	hint.BackgroundTransparency = 1
 	hint.Font = Enum.Font.GothamBold
 	hint.TextSize = 14
@@ -85,7 +85,7 @@ local function build()
 	hint.TextXAlignment = Enum.TextXAlignment.Left
 	hint.Text = if touchOnly
 		then "Drag to turn and swing your noodle"
-		else "Turn fast to swing  •  Ctrl: free mouse  •  N: noodles"
+		else "Turn fast to swing  •  Ctrl: free mouse  •  N: noodles  •  M: music"
 	hint.Parent = gui
 	local hintStroke = Instance.new("UIStroke")
 	hintStroke.Thickness = 1.5
