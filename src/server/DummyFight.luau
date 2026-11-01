@@ -6,6 +6,9 @@
 --
 -- It only affects the server it's switched on in. Workspace attribute
 -- "DummyFight" is true while it's on, so the admin panel can show it.
+--
+-- The solo-player dummy (attribute "SoloDummy", see server/SoloDummy) always
+-- fights, whether the admin switch is on or not.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -38,6 +41,11 @@ local holdTracks: { [Model]: AnimationTrack } = {}
 
 local holdAnimation = Instance.new("Animation")
 holdAnimation.AnimationId = HOLD_ANIMATION_ID
+
+-- Should this dummy be fighting right now?
+local function fights(dummy: Model): boolean
+	return enabled or dummy:GetAttribute("SoloDummy") == true
+end
 
 local function noodleDef()
 	return Noodles[Config.DummyFight.Noodle] or Noodles[Config.DefaultNoodle]
@@ -187,7 +195,7 @@ local function swing(dummy: Model, humanoid: Humanoid, root: BasePart, target: M
 	local function turn(fromYaw: number, toYaw: number, duration: number, onHalf: (() -> ())?)
 		local started = os.clock()
 		local halfDone = false
-		while enabled and dummy.Parent and canAct(dummy, humanoid) do
+		while fights(dummy) and dummy.Parent and canAct(dummy, humanoid) do
 			local t = math.min((os.clock() - started) / duration, 1)
 			faceYaw(root, fromYaw + (toYaw - fromYaw) * t)
 			-- Lunge at where they're going while swinging
@@ -239,7 +247,7 @@ local function swing(dummy: Model, humanoid: Humanoid, root: BasePart, target: M
 
 	if humanoid.Parent then
 		humanoid.AutoRotate = true
-		humanoid.WalkSpeed = if enabled then Config.DummyFight.WalkSpeed else Config.DefaultWalkSpeed
+		humanoid.WalkSpeed = if fights(dummy) then Config.DummyFight.WalkSpeed else Config.DefaultWalkSpeed
 	end
 	swinging[dummy] = nil
 end
@@ -292,8 +300,8 @@ function DummyFight.setEnabled(on: boolean)
 		if dummy:IsA("Model") then
 			if on then
 				arm(dummy)
-			else
-				disarm(dummy)
+			elseif not fights(dummy) then
+				disarm(dummy) -- the solo dummy keeps fighting
 			end
 		end
 	end
@@ -308,11 +316,9 @@ function DummyFight.start()
 	task.spawn(function()
 		while true do
 			task.wait(THINK_EVERY)
-			if enabled then
-				for _, dummy in CollectionService:GetTagged(Config.DummyTag) do
-					if dummy:IsA("Model") and dummy.Parent then
-						think(dummy)
-					end
+			for _, dummy in CollectionService:GetTagged(Config.DummyTag) do
+				if dummy:IsA("Model") and dummy.Parent and fights(dummy) then
+					think(dummy)
 				end
 			end
 		end

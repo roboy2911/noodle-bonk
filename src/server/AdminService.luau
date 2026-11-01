@@ -26,6 +26,7 @@ local DataService = require(script.Parent.DataService)
 local DummyFight = require(script.Parent.DummyFight)
 local DummySpawner = require(script.Parent.DummySpawner)
 local GlobalEvents = require(script.Parent.GlobalEvents)
+local SoloDummy = require(script.Parent.SoloDummy)
 local NoodleTools = require(script.Parent.NoodleTools)
 
 type Args = { [string]: any }
@@ -392,8 +393,8 @@ commands.ResetEveryone = function()
 		end)
 	end
 	DummyFight.setEnabled(false)
-	local removed = DummySpawner.clear()
-	DummySpawner.spawn(math.max(removed, Config.DummyCount))
+	DummySpawner.clear()
+	task.spawn(SoloDummy.update) -- back to one dummy if you're alone, none otherwise
 	workspace.Gravity = normalGravity
 	workspace:SetAttribute("LowGravity", nil)
 	return true, "Respawned everyone and reset the dummies"

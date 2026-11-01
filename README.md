@@ -21,7 +21,7 @@ Then open a place in Studio (the default Baseplate template is fine) and,
 **in Edit mode (not while playing)**, connect with the Rojo plugin. Check that
 `ReplicatedStorage > Shared` has its modules, then press Play. With
 `Config.AutoBuildArena` on, the server replaces the Baseplate with a test pool
-deck over water and spawns practice dummies.
+deck over water. Playing alone, you get one **Noodle Bot** dummy that fights you.
 
 To test saving in Studio, turn on **Game Settings > Security > Enable Studio
 Access to API Services**. Without it the game runs, but progress resets each session.
@@ -110,7 +110,10 @@ src/
     ArenaBuilder        the arena: pool deck dressed with the models
     Environment         sunny gameplay lighting
     Streaks             bonk streaks: glow, announcements, bonus for ending one
-    DummySpawner        practice dummies (on start, and from the admin panel)
+    DummySpawner        practice dummies (solo dummy and the admin panel)
+    SoloDummy           one fighting dummy when exactly one player is in the server
+    DummyFight          dummies that chase players and swing noodles
+    GlobalEvents        sends admin announcements and Pool Parties to every server
     AdminService        admin access checks and every admin command
   client/               StarterPlayerScripts.Client
     init.client.luau    entry point
@@ -180,6 +183,11 @@ milestones, ended streaks and admin announcements for everyone.
 | Bubble | Fall in 40 times | BubbleTrap: float someone away in a bubble |
 | Whip | Bonk 200 | Lash: yank someone toward you |
 | Kraken | Bonk 300 | Tentacle: grab and throw someone over your head |
+
+**Solo dummy:** when you're the only player in a server, one dummy called
+Noodle Bot spawns and fights you. It's removed as soon as a second player
+joins, and comes back if you're alone again. Turn it off with
+`Config.SoloDummy = false`.
 
 Bonks on practice dummies count toward unlocks **only in Studio**
 (`Config.DummyBonksCountInStudio`), so nobody can farm them in a live game.

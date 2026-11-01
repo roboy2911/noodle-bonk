@@ -12,9 +12,9 @@ local DataService = require(script.DataService)
 local CombatService = require(script.CombatService)
 local BonkTracker = require(script.BonkTracker)
 local NoodleTools = require(script.NoodleTools)
-local DummySpawner = require(script.DummySpawner)
 local DummyFight = require(script.DummyFight)
 local GlobalEvents = require(script.GlobalEvents)
+local SoloDummy = require(script.SoloDummy)
 local AdminService = require(script.AdminService)
 local Streaks = require(script.Streaks)
 local MonetizationService = require(script.MonetizationService)
@@ -40,5 +40,5 @@ if Config.BuildThumbnailScene then
 	Players.CharacterAutoLoads = false
 	task.spawn(require(script.ThumbnailScene).build)
 else
-	task.spawn(DummySpawner.spawn) -- building rigs can yield
+	SoloDummy.start() -- one dummy that fights you when you're alone
 end

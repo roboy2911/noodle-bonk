@@ -11,8 +11,13 @@ local Config = {
 	SpawnProtection = 3, -- seconds of ForceField after spawning (bonking someone ends it early)
 	DefaultWalkSpeed = 16,
 
-	-- Practice dummies spawned in a ring around the arena when the server starts
-	DummyCount = 3, -- set to 0 to turn them off
+	-- Solo dummy: when exactly one player is in a server, one dummy spawns and
+	-- fights them. It disappears as soon as a second player joins.
+	SoloDummy = true,
+	SoloDummyName = "Noodle Bot", -- shown in the kill feed: "BONKED by Noodle Bot!"
+
+	-- Practice dummies (admin panel > Spawn dummies)
+	DummyCount = 3, -- default number for "Respawn everyone" style resets
 	DummyRingCenter = Vector3.new(0, 0, 0),
 	DummyRingRadius = 25,
 	DummyTag = "NoodleDummy", -- tag any Humanoid model with this to make your own dummy
@@ -26,7 +31,7 @@ local Config = {
 		WalkSpeed = 15, -- a bit slower than players (16), so you can still get away
 		LungeSpeed = 26, -- speed of the short dash forward while swinging
 		ExtraReach = 1.5, -- studs of hit range on top of the noodle's length
-		ChaseRange = 120, -- studs; players further away are ignored
+		ChaseRange = 400, -- studs; players further away are ignored (the whole deck)
 		SwingCooldown = 1.2, -- seconds between a dummy's swings
 		Power = 0.85, -- fraction of the noodle's normal knockback
 	},
