@@ -23,12 +23,19 @@ local WIND_UP_TIME = 0.18 -- turning away before the swing
 local SWEEP_TIME = 0.16 -- the fast turn that hits
 local WIND_UP_ANGLE = math.rad(110)
 local FOLLOW_THROUGH_ANGLE = math.rad(80)
+-- Roblox's own R15 "holding a tool" pose (arm out in front), the one players
+-- get from their Animate script. Dummies' Animate script doesn't run, so we play it.
+local HOLD_ANIMATION_ID = "rbxassetid://507768375"
 
 local DummyFight = {}
 
 local enabled = false
 local swinging: { [Model]: boolean } = {}
 local lastSwing: { [Model]: number } = {}
+local holdTracks: { [Model]: AnimationTrack } = {}
+
+local holdAnimation = Instance.new("Animation")
+holdAnimation.AnimationId = HOLD_ANIMATION_ID
 
 local function noodleDef()
 	return Noodles[Config.DummyFight.Noodle] or Noodles[Config.DefaultNoodle]
@@ -69,6 +76,39 @@ local function canAct(dummy: Model, humanoid: Humanoid): boolean
 		and not CombatService.isStunned(dummy)
 end
 
+-- Keeps the arm held out in front while the dummy has a noodle.
+local function holdOut(dummy: Model, humanoid: Humanoid)
+	local track = holdTracks[dummy]
+	if track and track.IsPlaying then
+		return
+	end
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
+	end
+	local ok, result = pcall(function()
+		return (animator :: Animator):LoadAnimation(holdAnimation)
+	end)
+	if not ok then
+		warn(`[Noodle Bonk] Couldn't load the noodle hold pose: {result}`)
+		return
+	end
+	result.Priority = Enum.AnimationPriority.Action
+	result.Looped = true
+	result:Play(0.1)
+	holdTracks[dummy] = result
+end
+
+local function letGo(dummy: Model)
+	local track = holdTracks[dummy]
+	if track then
+		track:Stop(0.2)
+		track:Destroy()
+		holdTracks[dummy] = nil
+	end
+end
+
 local function arm(dummy: Model)
 	local humanoid = dummy:FindFirstChildOfClass("Humanoid")
 	if not humanoid or heldNoodle(dummy) then
@@ -78,6 +118,7 @@ local function arm(dummy: Model)
 	tool.Parent = dummy
 	humanoid:EquipTool(tool)
 	humanoid.WalkSpeed = Config.DummyFight.WalkSpeed
+	holdOut(dummy, humanoid)
 end
 
 local function disarm(dummy: Model)
@@ -85,6 +126,7 @@ local function disarm(dummy: Model)
 	if tool then
 		tool:Destroy()
 	end
+	letGo(dummy)
 	local humanoid = dummy:FindFirstChildOfClass("Humanoid")
 	local root = dummy:FindFirstChild("HumanoidRootPart")
 	if humanoid then
@@ -190,6 +232,8 @@ local function think(dummy: Model)
 	end
 	if not heldNoodle(dummy) then
 		arm(dummy) -- e.g. a dummy spawned after the fight started
+	else
+		holdOut(dummy, humanoid) -- in case the pose stopped
 	end
 	if not canAct(dummy, humanoid) then
 		return
@@ -237,6 +281,7 @@ function DummyFight.start()
 	CollectionService:GetInstanceRemovedSignal(Config.DummyTag):Connect(function(instance)
 		swinging[instance :: Model] = nil
 		lastSwing[instance :: Model] = nil
+		holdTracks[instance :: Model] = nil
 	end)
 	task.spawn(function()
 		while true do
