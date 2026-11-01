@@ -21,6 +21,11 @@
       "$properties": {
         "EnableMouseLockOption": false
       }
+    },
+    "ReplicatedFirst": {
+      "LoadingScreen": {
+        "$path": "src/first/LoadingScreen.client.luau"
+      }
     }
   }
 }

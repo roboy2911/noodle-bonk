@@ -62,7 +62,7 @@ local function build()
 	abilityLabel = Instance.new("TextLabel")
 	abilityLabel.Size = UDim2.fromScale(1, 1)
 	abilityLabel.BackgroundTransparency = 1
-	abilityLabel.Font = Enum.Font.FredokaOne
+	abilityLabel.Font = Enum.Font.LuckiestGuy
 	abilityLabel.TextSize = 18
 	abilityLabel.TextColor3 = Color3.new(1, 1, 1)
 	abilityLabel.ZIndex = 2
@@ -122,7 +122,7 @@ local function makeSoakTag(head: BasePart): SoakTag
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
+	label.Font = Enum.Font.LuckiestGuy
 	label.TextScaled = true
 	label.Parent = gui
 	local stroke = Instance.new("UIStroke")

@@ -1,7 +1,7 @@
 --!strict
 -- Background music: shuffles through the tracks in Config.Music, one after
 -- another. The MUSIC button in the bottom-right corner (or the M key) turns
--- it on and off.
+-- it on and off. Also starts the ocean ambience (Config.Ambience).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -66,7 +66,21 @@ function Music.setEnabled(on: boolean)
 	button.BackgroundColor3 = if on then ON_COLOR else OFF_COLOR
 end
 
+-- Ocean waves and seagulls, looping quietly (not affected by the music button)
+local function startAmbience()
+	for name, entry in Config.Ambience do
+		local loop = Instance.new("Sound")
+		loop.Name = `Ambience{name}`
+		loop.SoundId = `rbxassetid://{entry.Id}`
+		loop.Volume = entry.Volume
+		loop.Looped = true
+		loop.Parent = SoundService
+		loop:Play()
+	end
+end
+
 function Music.start()
+	startAmbience()
 	sound = Instance.new("Sound")
 	sound.Name = "NoodleMusic"
 	sound.Volume = Config.Music.Volume
@@ -81,7 +95,7 @@ function Music.start()
 	button.AnchorPoint = Vector2.new(1, 1)
 	button.Position = UDim2.new(1, -16, 1, -16)
 	button.Size = UDim2.fromOffset(120, 32)
-	button.Font = Enum.Font.FredokaOne
+	button.Font = Enum.Font.LuckiestGuy
 	button.TextSize = 16
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Parent = gui

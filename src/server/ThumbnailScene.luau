@@ -26,6 +26,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
+local NoodleMesh = require(Shared.NoodleMesh)
 
 local ThumbnailScene = {}
 
@@ -292,15 +293,14 @@ local function buildNoodle(
 	for i = 1, segments do
 		frame = frame * CFrame.Angles(math.rad(pitchBend), math.rad(yawBend), 0) * CFrame.new(0, 0, -segmentLength)
 		local point = frame.Position
-		part(
-			noodle,
-			"Segment",
-			Enum.PartType.Cylinder,
-			Vector3.new(segmentLength + thickness * 0.1, thickness, thickness),
-			CFrame.lookAt((previous + point) / 2, point) * CFrame.Angles(0, math.rad(90), 0),
-			color
-		)
-		part(noodle, "Joint", Enum.PartType.Ball, Vector3.one * thickness, CFrame.new(point), color)
+		-- Ridged foam mesh pieces when loaded (same as the live game), else cylinders
+		local piece = NoodleMesh.newPiece(i == segments, color)
+		NoodleMesh.setSize(piece, segmentLength * 1.12, thickness)
+		piece.part.CFrame = NoodleMesh.cframeBetween(piece, previous, point)
+		piece.part.Parent = noodle
+		if i < segments then
+			part(noodle, "Joint", Enum.PartType.Ball, Vector3.one * thickness * 0.88, CFrame.new(point), color)
+		end
 		previous = point
 	end
 	return previous
@@ -337,7 +337,7 @@ local function buildImpactStar(parent: Instance, position: Vector3, cameraPositi
 	local text = Instance.new("TextLabel")
 	text.Size = UDim2.fromScale(1, 1)
 	text.BackgroundTransparency = 1
-	text.Font = Enum.Font.FredokaOne
+	text.Font = Enum.Font.LuckiestGuy
 	text.TextScaled = true
 	text.Text = "BONK!"
 	text.TextColor3 = STAR_YELLOW

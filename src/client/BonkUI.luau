@@ -45,7 +45,7 @@ local function build()
 	banner.Position = UDim2.fromScale(0.5, 0.3)
 	banner.Size = UDim2.fromScale(0.8, 0.12)
 	banner.BackgroundTransparency = 1
-	banner.Font = Enum.Font.FredokaOne
+	banner.Font = Enum.Font.LuckiestGuy
 	banner.TextScaled = true
 	banner.Visible = false
 	banner.Parent = gui

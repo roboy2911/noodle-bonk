@@ -5,7 +5,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local ModelLibrary = require(script.ModelLibrary)
 local ArenaBuilder = require(script.ArenaBuilder)
+local Environment = require(script.Environment)
 local DataService = require(script.DataService)
 local CombatService = require(script.CombatService)
 local BonkTracker = require(script.BonkTracker)
@@ -16,7 +18,11 @@ local Streaks = require(script.Streaks)
 
 Players.RespawnTime = Config.RespawnTime
 
+ModelLibrary.load() -- the Blender models; waits up to ~20s, falls back to simple parts
 ArenaBuilder.build()
+if not Config.BuildThumbnailScene then
+	Environment.setup()
+end
 DataService.start()
 Streaks.start()
 CombatService.start()

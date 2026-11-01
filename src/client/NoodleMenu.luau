@@ -180,7 +180,7 @@ local function buildCard(parent: Instance, def: NoodleDef, order: number, ranges
 	swatch.Parent = button
 	corner(swatch, 6)
 
-	label(button, def.DisplayName, Enum.Font.FredokaOne, 20, TEXT_COLOR).LayoutOrder = 2
+	label(button, def.DisplayName, Enum.Font.LuckiestGuy, 20, TEXT_COLOR).LayoutOrder = 2
 
 	local desc = label(button, def.Description, Enum.Font.Gotham, 12, SUBTEXT_COLOR)
 	desc.Size = UDim2.new(1, 0, 0, 30)
@@ -294,7 +294,7 @@ local function build()
 	openButton.Position = UDim2.new(0, 16, 0.5, 0)
 	openButton.Size = UDim2.fromOffset(130, 46)
 	openButton.BackgroundColor3 = BUTTON_COLOR
-	openButton.Font = Enum.Font.FredokaOne
+	openButton.Font = Enum.Font.LuckiestGuy
 	openButton.TextSize = 22
 	openButton.TextColor3 = TEXT_COLOR
 	openButton.Text = "NOODLES"
@@ -326,7 +326,7 @@ local function build()
 	panelScale = Instance.new("UIScale")
 	panelScale.Parent = panel
 
-	local title = label(panel, "PICK YOUR NOODLE", Enum.Font.FredokaOne, 30, TEXT_COLOR)
+	local title = label(panel, "PICK YOUR NOODLE", Enum.Font.LuckiestGuy, 30, TEXT_COLOR)
 	title.Position = UDim2.fromOffset(20, 14)
 	title.Size = UDim2.new(1, -80, 0, 36)
 
@@ -335,7 +335,7 @@ local function build()
 	close.Position = UDim2.new(1, -14, 0, 14)
 	close.Size = UDim2.fromOffset(36, 36)
 	close.BackgroundColor3 = Color3.fromRGB(230, 70, 80)
-	close.Font = Enum.Font.FredokaOne
+	close.Font = Enum.Font.LuckiestGuy
 	close.TextSize = 22
 	close.TextColor3 = TEXT_COLOR
 	close.Text = "X"

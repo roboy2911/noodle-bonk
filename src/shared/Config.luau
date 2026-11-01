@@ -110,6 +110,15 @@ local Config = {
 		Announcement = { Ids = { 9114402205 }, Volume = 0.6 }, -- Dual Air Horns
 	} :: { [string]: { Ids: { number }, Volume: number } },
 
+	-- Ocean ambience under everything (ProSoundEffects), always on, quiet
+	Ambience = {
+		Waves = { Id = 9119677305, Volume = 0.22 }, -- Surf Ocean Wave Impact On Zuma Beach 4
+		Seagulls = { Id = 9118858002, Volume = 0.08 }, -- Seagulls 1
+	} :: { [string]: { Id: number, Volume: number } },
+
+	-- Sunny gameplay lighting (server/Environment). Turn off to keep your place's own Lighting.
+	SetupLighting = true,
+
 	-- Background music from Roblox's licensed APM library. Plays in a shuffled loop.
 	Music = {
 		Ids = { 1837779005, 1840735251, 9043828544 }, -- Beach Party, Pool Party, Maui Beach

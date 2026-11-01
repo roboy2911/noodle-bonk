@@ -114,7 +114,7 @@ local function header(page: ScrollingFrame, text: string)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, -8, 0, 22)
 	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
+	label.Font = Enum.Font.LuckiestGuy
 	label.TextSize = 17
 	label.TextColor3 = SELECTED_COLOR
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -431,7 +431,7 @@ local function build()
 	local openButton = makeButton(gui, "ADMIN", DANGER_COLOR, 130)
 	openButton.AnchorPoint = Vector2.new(0, 0.5)
 	openButton.Position = UDim2.new(0, 16, 0.5, 46)
-	openButton.Font = Enum.Font.FredokaOne
+	openButton.Font = Enum.Font.LuckiestGuy
 	openButton.TextSize = 18
 	openButton.Activated:Connect(function()
 		AdminPanel.setOpen(not isOpen)
@@ -465,7 +465,7 @@ local function build()
 	title.Position = UDim2.fromOffset(16, 10)
 	title.Size = UDim2.fromOffset(200, 30)
 	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.FredokaOne
+	title.Font = Enum.Font.LuckiestGuy
 	title.TextSize = 26
 	title.TextColor3 = TEXT_COLOR
 	title.TextXAlignment = Enum.TextXAlignment.Left

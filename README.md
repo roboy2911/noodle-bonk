@@ -37,16 +37,67 @@ Access to API Services**. Without it the game runs, but progress resets each ses
 | P / ADMIN button | Admin panel (admins only) |
 | M / MUSIC button | Music on/off |
 
+## 3D models (Blender)
+
+Every model is made in Blender by a script, uploaded to Roblox with Open
+Cloud, and loaded by the game at startup:
+
+| Model | Used for |
+|---|---|
+| NoodleSegment, NoodleTip | every noodle: ridged foam tube with a hollow core, rounded tip |
+| PoolDeck | the arena floor look: deck slab, cyan coping lip, tile bands |
+| SpawnPad | the spawn platform with a pink star |
+| Umbrella | 8-panel scalloped beach umbrellas (2 colors per copy) |
+| LoungeChair | pairs of loungers near the middle |
+| LifeguardTower | lifeguard tower with a striped roof |
+| Crate | wooden crate piles |
+| PalmTree | palm trees around the edge |
+| BeachBall, SwimRing, RubberDuck | scattered pool toys and a giant duck |
+
+**How it fits together**
+
+- `tools/blender/build_models.py` builds them all and exports FBX files to
+  `assets/models/`. Part names start with a color token (`Wood_Leg`), and the
+  game colors parts from the palette in `src/shared/ModelAssets.luau`.
+- `tools/upload_models.py` uploads changed FBX files as Model assets owned by
+  your account and writes their IDs to `src/shared/ModelIds.luau`.
+- `src/server/ModelLibrary.luau` loads them with InsertService at startup,
+  colors, sizes and stands them up, and puts templates in
+  `ReplicatedStorage.ModelLibrary` so clients can use them too.
+- If a model can't load, the game uses the old simple parts instead.
+
+**Models only load in a place owned by the account that owns them**
+(roboy2911). In a fresh unsaved Studio place you'll see the simple parts. Use
+**File > Save to Roblox** (or publish) and run again to see the models.
+
+To change a model: edit `build_models.py`, then rebuild and re-upload:
+
+```bash
+blender --background --factory-startup --python tools/blender/build_models.py -- assets/models
+```
+```bash
+python3 tools/upload_models.py
+```
+
+The upload needs `ROBLOX_API_KEY` (Open Cloud key with asset read + write)
+and `ROBLOX_USER_ID` in the environment. To preview models without Studio:
+`blender --background --factory-startup --python tools/blender/render_previews.py -- assets/models previews`.
+
 ## Layout
 
 ```
 src/
+  first/                ReplicatedFirst
+    LoadingScreen       logo + tips loading screen, waits for the models
   shared/               ReplicatedStorage.Shared
     Config.luau         global tuning (swing speeds, Soak, sim, sounds...)
     Noodles.luau        every noodle: stats, ability, unlock requirement
     Unlocks.luau        unlock rules shared by server and client
     HitQuery.luau       cone/range checks (used by abilities)
     Remotes.luau        RemoteEvents + the KnockbackInfo type
+    ModelAssets.luau    model palette, sizes and fit rules
+    ModelIds.luau       uploaded model asset IDs (generated)
+    NoodleMesh.luau     noodle pieces from the foam mesh
   server/               ServerScriptService.Server
     init.server.luau    entry point
     DataService         DataStore saving: stats, chosen noodle, leaderstats
@@ -55,7 +106,9 @@ src/
     Ragdoll             floppy ragdoll (Motor6D <-> BallSocket)
     NoodleTools         gives out noodle Tools, handles menu picks
     BonkTracker         detects falls, credits bonks, updates stats
-    ArenaBuilder        the arena: 330-stud pool deck with benches, umbrellas, crates
+    ModelLibrary        loads the Blender models and makes templates
+    ArenaBuilder        the arena: pool deck dressed with the models
+    Environment         sunny gameplay lighting
     Streaks             bonk streaks: glow, announcements, bonus for ending one
     DummySpawner        practice dummies (on start, and from the admin panel)
     AdminService        admin access checks and every admin command
@@ -253,6 +306,24 @@ To move things around, edit the `at(forward, sideways, height)` positions in
 - **Swings feel weak:** lower `FullPowerSpeed`.
 - **Noodles too wobbly / too stiff:** change `NoodleDamping`, or a noodle's `Stiffness`.
 - **Noodle points backwards out of the hand:** set `Config.GripSign = -1`.
+
+## Publishing checklist
+
+1. Open (or create) a place for Noodle Bonk only, connect Rojo in **Edit
+   mode**, and check `Config.luau`: `BuildThumbnailScene = false`.
+2. **File > Publish to Roblox** under **roboy2911** (the account that owns the
+   models). Run a test server: the Output should say `Loaded 12 Blender models`.
+3. **Game Settings**:
+   - Security: turn on **Enable Studio Access to API Services** (saving).
+   - Avatar: **R15**.
+   - Basic Info: name **Noodle Bonk 🏊 Battles**, the description from
+     `marketing/description.txt`, icon `marketing/icon_A_512.png`,
+     thumbnail `marketing/thumbnail_1920x1080.png`.
+   - Permissions: set the game to **Public** when you're ready.
+4. Fill in the **Experience Questionnaire** (content maturity) on the Creator
+   Hub. Noodle Bonk is cartoon slapstick with no blood.
+5. Play a real server with a friend (Test > Clients and Servers, or publish
+   and join) to check hits, saving and unlocks.
 
 ## Known gaps / next steps
 

@@ -1,0 +1,50 @@
+{
+  "BeachBall": {
+    "assetId": 110524022255102,
+    "sha256": "1d044e6aebda443e9ab2cd36b66f7dc7de5e3e84a800d648d904a9bcbbe8f992"
+  },
+  "Crate": {
+    "assetId": 81968540251929,
+    "sha256": "b63cdb7bbf6123b5f2b421a0350108e1fc678722940b31c57e0fcbfc7fb7303a"
+  },
+  "LifeguardTower": {
+    "assetId": 78561746793574,
+    "sha256": "33c24423fad74180d6676542819f0985fde61f5fcc5352c53ddf6c283f955a75"
+  },
+  "LoungeChair": {
+    "assetId": 84216554850437,
+    "sha256": "722d2e1c163f044f3435f3cce430f22e7b531261241e5e94cc013fda64f9499e"
+  },
+  "NoodleSegment": {
+    "assetId": 89964344409526,
+    "sha256": "23f8b17c2b4fd587659effeae8dc3e28dd9bd729bd5fa5339c52097f43bdfe28"
+  },
+  "NoodleTip": {
+    "assetId": 90850220029414,
+    "sha256": "5b6c1cc39994c9e8e5191e2e5090369fb28f00eb73ccaceb38befb058e0f27bc"
+  },
+  "PalmTree": {
+    "assetId": 134751439158398,
+    "sha256": "e77bec157e926668163b4bad2dfaf3b4a2ee8510fe81ef622da1366a402a4e20"
+  },
+  "PoolDeck": {
+    "assetId": 101945883105496,
+    "sha256": "55c37ce91aacaecc8cafe3683421ef1c11bc506d33106a908fe1ed274a4e4021"
+  },
+  "RubberDuck": {
+    "assetId": 101091203252800,
+    "sha256": "fbd0e50700eb76dda9091f31f96f55b62965027a7f70ce59856b2b4ccb8bf7aa"
+  },
+  "SpawnPad": {
+    "assetId": 87732828447003,
+    "sha256": "3e894c2f35cd7402e6bf7589de2315121f13b6230c42e81d7639168b38a2c4d0"
+  },
+  "SwimRing": {
+    "assetId": 73848969213110,
+    "sha256": "ee8749d7d8436a55779f497d9d01f1414eee5b1cab12b538697e3dd4a8686292"
+  },
+  "Umbrella": {
+    "assetId": 86609234627235,
+    "sha256": "acd728b42d800afbaf6061f37ec79aa13c235a107594d15adf15d2b9076d7770"
+  }
+}
