@@ -23,9 +23,11 @@ local Config = {
 	-- noodle, chase the nearest player and swing at them. Only in that server.
 	DummyFight = {
 		Noodle = "Classic", -- noodle the dummies hold
-		WalkSpeed = 13, -- a bit slower than players, so you can get away
+		WalkSpeed = 15, -- a bit slower than players (16), so you can still get away
+		LungeSpeed = 26, -- speed of the short dash forward while swinging
+		ExtraReach = 1.5, -- studs of hit range on top of the noodle's length
 		ChaseRange = 120, -- studs; players further away are ignored
-		SwingCooldown = 1.4, -- seconds between a dummy's swings
+		SwingCooldown = 1.2, -- seconds between a dummy's swings
 		Power = 0.85, -- fraction of the noodle's normal knockback
 	},
 

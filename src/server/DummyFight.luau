@@ -19,8 +19,10 @@ local CombatService = require(script.Parent.CombatService)
 local NoodleTools = require(script.Parent.NoodleTools)
 
 local THINK_EVERY = 0.15 -- seconds between chase updates
-local WIND_UP_TIME = 0.18 -- turning away before the swing
+local WIND_UP_TIME = 0.12 -- turning away before the swing
 local SWEEP_TIME = 0.16 -- the fast turn that hits
+local HIT_DELAY = WIND_UP_TIME + SWEEP_TIME / 2 -- from starting a swing to the hit
+local HIT_HEIGHT = 9 -- studs above or below the dummy it can still hit (jumping players)
 local WIND_UP_ANGLE = math.rad(110)
 local FOLLOW_THROUGH_ANGLE = math.rad(80)
 -- Roblox's own R15 "holding a tool" pose (arm out in front), the one players
@@ -139,6 +141,15 @@ local function disarm(dummy: Model)
 	swinging[dummy] = nil
 end
 
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+-- Where the target will be in `seconds`, if they keep moving the same way.
+local function predict(targetRoot: BasePart, seconds: number): Vector3
+	return targetRoot.Position + flat(targetRoot.AssemblyLinearVelocity) * seconds
+end
+
 local function nearestPlayer(position: Vector3): (Model?, BasePart?)
 	local best, bestRoot, bestDistance = nil, nil, Config.DummyFight.ChaseRange
 	for _, player in Players:GetPlayers() do
@@ -166,7 +177,9 @@ local function swing(dummy: Model, humanoid: Humanoid, root: BasePart, target: M
 	local def = noodleDef()
 	local side = if math.random() < 0.5 then 1 else -1
 	local _, targetRoot = CombatService.getLiving(target)
-	local towardYaw = if targetRoot then yawToward(targetRoot.Position - root.Position) else 0
+	local aimAt = if targetRoot then predict(targetRoot, HIT_DELAY) else root.Position + root.CFrame.LookVector
+	local towardYaw = yawToward(flat(aimAt - root.Position))
+	humanoid.WalkSpeed = Config.DummyFight.LungeSpeed
 	local startYaw = yawOf(root)
 	local windYaw = wrapNear(towardYaw + side * WIND_UP_ANGLE, startYaw)
 	local endYaw = windYaw - side * (WIND_UP_ANGLE + FOLLOW_THROUGH_ANGLE)
@@ -177,6 +190,11 @@ local function swing(dummy: Model, humanoid: Humanoid, root: BasePart, target: M
 		while enabled and dummy.Parent and canAct(dummy, humanoid) do
 			local t = math.min((os.clock() - started) / duration, 1)
 			faceYaw(root, fromYaw + (toYaw - fromYaw) * t)
+			-- Lunge at where they're going while swinging
+			local _, lungeRoot = CombatService.getLiving(target)
+			if lungeRoot then
+				humanoid:MoveTo(predict(lungeRoot, HIT_DELAY))
+			end
 			if onHalf and not halfDone and t >= 0.5 then
 				halfDone = true
 				onHalf()
@@ -196,8 +214,8 @@ local function swing(dummy: Model, humanoid: Humanoid, root: BasePart, target: M
 				return
 			end
 			local offset = nowRoot.Position - root.Position
-			local reach = def.Length + Config.ArmReach + Config.BodyRadius
-			if Vector3.new(offset.X, 0, offset.Z).Magnitude > reach or math.abs(offset.Y) > 6 then
+			local reach = def.Length + Config.ArmReach + Config.BodyRadius + Config.DummyFight.ExtraReach
+			if flat(offset).Magnitude > reach or math.abs(offset.Y) > HIT_HEIGHT then
 				return -- they got away
 			end
 			-- Mostly the way the noodle sweeps, partly away from the dummy
@@ -221,6 +239,7 @@ local function swing(dummy: Model, humanoid: Humanoid, root: BasePart, target: M
 
 	if humanoid.Parent then
 		humanoid.AutoRotate = true
+		humanoid.WalkSpeed = if enabled then Config.DummyFight.WalkSpeed else Config.DefaultWalkSpeed
 	end
 	swinging[dummy] = nil
 end
@@ -245,14 +264,17 @@ local function think(dummy: Model)
 	end
 
 	local def = noodleDef()
-	local offset = targetRoot.Position - root.Position
-	local flatDistance = Vector3.new(offset.X, 0, offset.Z).Magnitude
+	-- Start swinging early enough that the lunge reaches where they'll be
 	local swingRange = def.Length + Config.ArmReach
-	if flatDistance <= swingRange and os.clock() - (lastSwing[dummy] or 0) >= Config.DummyFight.SwingCooldown then
-		humanoid:MoveTo(root.Position)
+	local lungeDistance = Config.DummyFight.LungeSpeed * HIT_DELAY
+	local nowDistance = flat(targetRoot.Position - root.Position).Magnitude
+	local laterDistance = flat(predict(targetRoot, HIT_DELAY) - root.Position).Magnitude
+	local ready = os.clock() - (lastSwing[dummy] or 0) >= Config.DummyFight.SwingCooldown
+	if ready and math.min(nowDistance, laterDistance) <= swingRange + lungeDistance then
 		task.spawn(swing, dummy, humanoid, root, target)
-	elseif flatDistance > swingRange * 0.6 then
-		humanoid:MoveTo(targetRoot.Position)
+	elseif nowDistance > swingRange * 0.6 then
+		-- Head for where they're going, not where they are, to cut them off
+		humanoid:MoveTo(predict(targetRoot, 0.4))
 	end
 end
 
