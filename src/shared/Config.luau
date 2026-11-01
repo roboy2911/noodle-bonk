@@ -81,10 +81,10 @@ local Config = {
 	-- paste their IDs here (see README "Shop setup"). 0 = not set up yet: the
 	-- shop shows it as "Coming soon".
 	Monetization = {
-		SkinsPassId = 0, -- game pass: Noodle Skins Pack (79 R$)
-		VipPassId = 0, -- game pass: VIP (99 R$)
-		DoubleBonksPassId = 0, -- game pass: 2x Bonks (49 R$)
-		PoolPartyProductId = 0, -- developer product: Pool Party (25 R$, can buy again)
+		SkinsPassId = 2064184318, -- game pass: Noodle Skins (79 R$)
+		VipPassId = 2063685083, -- game pass: VIP (99 R$)
+		DoubleBonksPassId = 2064176426, -- game pass: 2X Bonks (49 R$)
+		PoolPartyProductId = 3726303546, -- developer product: Pool Party (25 R$, can buy again)
 		-- In Studio, act as if you own every pass so you can test the perks
 		StudioOwnsEverything = true,
 	},
