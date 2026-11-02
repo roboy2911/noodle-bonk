@@ -12,6 +12,9 @@ local Remotes = require(Shared.Remotes)
 local HitQuery = require(Shared.HitQuery)
 local Friends = require(script.Parent.Friends)
 
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+
 export type AbilityContext = {
 	player: Player,
 	character: Model,
@@ -183,6 +186,61 @@ Abilities.Rally = function(ctx)
 		velocity = toFriend.Unit * math.clamp(toFriend.Magnitude * 1.1, 30, 110) + Vector3.yAxis * 55,
 		ragdollTime = 0,
 	})
+end
+
+-- Everyone who can be hit: players, dummies and the duck boss.
+local function everyone(except: Model): { Model }
+	local list = {}
+	for _, player in Players:GetPlayers() do
+		if player.Character and player.Character ~= except then
+			table.insert(list, player.Character)
+		end
+	end
+	for _, tag in { Config.DummyTag, "DuckBoss" } do
+		for _, model in CollectionService:GetTagged(tag) do
+			if model:IsA("Model") and model ~= except then
+				table.insert(list, model)
+			end
+		end
+	end
+	return list
+end
+
+-- Duck: a row of rubber ducks charges forward and bowls over everyone in
+-- the way. Every client draws the ducks; the server checks who they reach.
+local STAMPEDE_WIDTH = 8 -- studs either side of the middle of the charge
+local STAMPEDE_TIME = 1.2
+
+Abilities.Stampede = function(ctx)
+	local look = flat(ctx.root.CFrame.LookVector)
+	if look.Magnitude < 0.01 then
+		return
+	end
+	local direction = look.Unit
+	local origin = ctx.root.Position
+	sound("Stampede", origin)
+	Remotes.AbilityFx:FireAllClients("Stampede", origin, direction)
+
+	task.spawn(function()
+		local hit: { [Model]: boolean } = {}
+		local steps = 12
+		for step = 1, steps do
+			task.wait(STAMPEDE_TIME / steps)
+			local front = Config.StampedeLength * step / steps
+			for _, target in everyone(ctx.character) do
+				local _, targetRoot = ctx.combat.getLiving(target)
+				if targetRoot and not hit[target] and not ctx.combat.isProtected(target) then
+					local offset = targetRoot.Position - origin
+					local along = offset:Dot(direction)
+					local side = flat(offset - direction * along).Magnitude
+					if along > 0 and along <= front + 2 and side <= STAMPEDE_WIDTH and math.abs(offset.Y) < 10 then
+						hit[target] = true
+						ctx.combat.strike(ctx.player, target, targetRoot, direction, Config.StampedePower, 0.7, ctx.def)
+					end
+				end
+			end
+		end
+	end)
 end
 
 return Abilities

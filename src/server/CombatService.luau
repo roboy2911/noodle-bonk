@@ -108,6 +108,14 @@ end
 
 -- Bonk credit ---------------------------------------------------------------
 
+local hitListeners: { (target: Model, attacker: Player?) -> () } = {}
+
+-- Calls `callback(target, attacker)` whenever anyone is hit (e.g. the duck
+-- boss uses it to remember everyone who hit it).
+function CombatService.onHit(callback: (target: Model, attacker: Player?) -> ())
+	table.insert(hitListeners, callback)
+end
+
 -- `attacker` is nil for dummies; pass their name as `attackerName` instead.
 function CombatService.recordHit(target: Model, attacker: Player?, noodleId: string, attackerName: string?)
 	lastHit[target] = {
@@ -116,6 +124,15 @@ function CombatService.recordHit(target: Model, attacker: Player?, noodleId: str
 		noodleId = noodleId,
 		time = os.clock(),
 	}
+	for _, callback in hitListeners do
+		task.spawn(callback, target, attacker)
+	end
+end
+
+-- Extra body size for big targets (the duck boss sets "ExtraRadius").
+local function extraRadius(target: Model): number
+	local extra = target:GetAttribute("ExtraRadius")
+	return if type(extra) == "number" then extra else 0
 end
 
 -- Who gets credit if `target` falls right now.
@@ -182,7 +199,7 @@ local function pushNpc(target: Model, humanoid: Humanoid, root: BasePart, info: 
 		return
 	end
 
-	if info.ragdollTime > 0 then
+	if info.ragdollTime > 0 and not target:GetAttribute("NoRagdoll") then
 		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 		root.AssemblyAngularVelocity = randomSpin()
 		task.delay(info.ragdollTime, function()
@@ -206,7 +223,7 @@ function CombatService.applyKnockback(target: Model, info: KnockbackInfo)
 			target:SetAttribute("StunnedUntil", untilTime)
 		end
 	end
-	if info.ragdollTime > 0 then
+	if info.ragdollTime > 0 and not target:GetAttribute("NoRagdoll") then
 		Ragdoll.enable(target, info.ragdollTime)
 	end
 
@@ -218,6 +235,12 @@ function CombatService.applyKnockback(target: Model, info: KnockbackInfo)
 
 	local humanoid, root = CombatService.getLiving(target)
 	if humanoid and root then
+		-- Heavy targets (the duck boss) set a KnockbackScale below 1
+		local weight = target:GetAttribute("KnockbackScale")
+		if type(weight) == "number" then
+			info = table.clone(info)
+			info.velocity *= weight
+		end
 		pushNpc(target, humanoid, root, info)
 	end
 end
@@ -362,10 +385,11 @@ local function onNoodleHit(player: Player, target: unknown, hitPos: unknown, dir
 	local scale = CombatService.getScale(tool)
 	local reach = def.Length * scale + Config.ArmReach
 	local slack = Config.RangeTolerance
-	if (targetRoot.Position - root.Position).Magnitude > reach + Config.BodyRadius + slack then
+	local bodyRadius = Config.BodyRadius + extraRadius(victim)
+	if (targetRoot.Position - root.Position).Magnitude > reach + bodyRadius + slack then
 		return
 	end
-	if (hitPosition - targetRoot.Position).Magnitude > Config.BodyRadius * 2 + slack then
+	if (hitPosition - targetRoot.Position).Magnitude > bodyRadius * 2 + slack then
 		return
 	end
 	if (hitPosition - root.Position).Magnitude > reach + slack then

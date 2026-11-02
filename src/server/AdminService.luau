@@ -27,6 +27,8 @@ local DummyFight = require(script.Parent.DummyFight)
 local DummySpawner = require(script.Parent.DummySpawner)
 local GlobalEvents = require(script.Parent.GlobalEvents)
 local SoloDummy = require(script.Parent.SoloDummy)
+local DuckBoss = require(script.Parent.DuckBoss)
+local DuckJar = require(script.Parent.DuckJar)
 local NoodleTools = require(script.Parent.NoodleTools)
 
 type Args = { [string]: any }
@@ -334,6 +336,33 @@ commands.ToggleDummyFight = function()
 	local on = not DummyFight.isOn()
 	DummyFight.setEnabled(on)
 	return true, if on then "Dummies are coming for you!" else "Dummies calmed down"
+end
+
+-- Duck jar and boss (this server only)
+commands.SetDucks = function(_, args)
+	local amount = numberOf(args.value)
+	if not amount then
+		return false, "Type a number of ducks first"
+	end
+	DuckJar.set(amount)
+	if DuckBoss.isActive() and DuckJar.getCount() == 0 then
+		return true, "Jar full: the Giant Duck is here!"
+	end
+	return true, `The jar has {DuckJar.getCount()} ducks`
+end
+
+commands.SpawnDuckBoss = function()
+	if not DuckBoss.spawn() then
+		return false, "The Giant Duck is already out"
+	end
+	return true, "Spawned the Giant Duck"
+end
+
+commands.RemoveDuckBoss = function()
+	if not DuckBoss.remove() then
+		return false, "There's no Giant Duck right now"
+	end
+	return true, "Removed the Giant Duck (nobody wins)"
 end
 
 commands.Announce = function(admin, args)

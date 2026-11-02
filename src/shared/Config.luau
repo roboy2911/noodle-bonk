@@ -90,6 +90,30 @@ local Config = {
 	SpraySoak = 40, -- Splash noodle: Soak added by the spray
 	LuckyChance = 2500, -- Lucky noodle: 1 in this many bonks unlocks it
 
+	-- Duck jar and Giant Rubber Duck boss (each server has its own). Every bonk
+	-- drops a duck in the jar; a full jar spawns the boss. Bonk it into the
+	-- pool, and everyone who hit it unlocks the Duck noodle.
+	DuckJar = {
+		Target = 2500, -- ducks needed to summon the boss
+		Spot = Vector3.new(47.6, 0, 27.5), -- where the jar stands on the deck
+	},
+	DuckBoss = {
+		Scale = 1.6, -- size of the duck model (1 = the 9-stud decoration)
+		BodySize = Vector3.new(11, 9, 13), -- its invisible hitbox
+		KnockbackScale = 0.4, -- it's heavy: hits push it this much of normal
+		WalkSpeed = 9,
+		BumpRange = 11, -- belly bump anyone this close
+		BumpCooldown = 2,
+		BumpPower = 70,
+		QuackEvery = 9, -- seconds between QUACK shockwaves
+		QuackRadius = 24,
+		QuackPower = 60,
+		Lifetime = 420, -- seconds before it gets bored and leaves
+		StayInside = 20, -- it won't walk closer than this to the deck edge
+	},
+	StampedeLength = 60, -- Duck noodle: studs the duck stampede runs
+	StampedePower = 75,
+
 	-- Noodle tool
 	DefaultNoodle = "Classic",
 	SelectCooldown = 0.5, -- seconds between noodle switches from the menu
@@ -143,6 +167,8 @@ local Config = {
 		Vanish = { Ids = { 9120286427 }, Volume = 0.6 }, -- Tubular Whoosh Rise
 		Magnet = { Ids = { 9113524242 }, Volume = 0.7 }, -- Body Impact 3
 		Tornado = { Ids = { 9120972444, 9120972457, 9120972323 }, Volume = 0.9 }, -- Wood Whoosh Quick Swings
+		Quack = { Ids = { 9113854528, 9113854411 }, Volume = 1 }, -- Comic Boinks (swap in a real quack)
+		Stampede = { Ids = { 9113854234, 9113854388, 9113854393 }, Volume = 0.9 }, -- Comic Boinks
 		Streak = { Ids = { 9116394545 }, Volume = 0.8 }, -- Magic Glows Chiming Hits
 		StreakEnded = { Ids = { 9120974378 }, Volume = 0.6 }, -- Wrestling Crowd 3
 		Unlock = { Ids = { 9126073001 }, Volume = 0.8 }, -- Synth Sparkle Bell Ding

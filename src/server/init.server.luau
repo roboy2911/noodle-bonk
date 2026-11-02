@@ -17,6 +17,8 @@ local GlobalEvents = require(script.GlobalEvents)
 local SoloDummy = require(script.SoloDummy)
 local Friends = require(script.Friends)
 local PoolParty = require(script.PoolParty)
+local DuckBoss = require(script.DuckBoss)
+local DuckJar = require(script.DuckJar)
 local AdminService = require(script.AdminService)
 local Streaks = require(script.Streaks)
 local MonetizationService = require(script.MonetizationService)
@@ -38,6 +40,10 @@ GlobalEvents.start()
 DummyFight.start()
 Friends.start()
 PoolParty.init()
+DuckBoss.start(CombatService)
+if not Config.BuildThumbnailScene then
+	DuckJar.start()
+end
 MonetizationService.start()
 if Config.BuildThumbnailScene then
 	-- Screenshot mode: no player characters or dummies, just the posed scene

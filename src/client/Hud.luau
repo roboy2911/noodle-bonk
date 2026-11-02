@@ -141,9 +141,11 @@ local function updateSoakTags()
 			table.insert(characters, other.Character)
 		end
 	end
-	for _, dummy in CollectionService:GetTagged(Config.DummyTag) do
-		if dummy:IsA("Model") then
-			table.insert(characters, dummy)
+	for _, tag in { Config.DummyTag, "DuckBoss" } do
+		for _, model in CollectionService:GetTagged(tag) do
+			if model:IsA("Model") then
+				table.insert(characters, model)
+			end
 		end
 	end
 

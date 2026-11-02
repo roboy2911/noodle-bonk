@@ -203,6 +203,25 @@ end
 function BonkUI.start()
 	build()
 	Remotes.Bonked.OnClientEvent:Connect(onBonked)
+	Remotes.DuckBoss.OnClientEvent:Connect(function(event: string, names: { string }?)
+		local yellow = Color3.fromRGB(255, 215, 40)
+		if event == "Spawned" then
+			Effects.playSound("Announcement")
+			BonkUI.showBanner("THE GIANT DUCK IS HERE!", yellow, 4)
+			addFeedEntry("The duck jar is full! Bonk the Giant Duck into the pool!", yellow)
+		elseif event == "Defeated" then
+			Effects.playSound("StreakEnded")
+			local list = names or {}
+			if table.find(list, player.DisplayName) then
+				BonkUI.showBanner("GIANT DUCK DEFEATED! DUCK NOODLE UNLOCKED!", yellow, 4)
+			else
+				BonkUI.showBanner("THE GIANT DUCK IS DEFEATED!", yellow, 3)
+			end
+			addFeedEntry(`Giant Duck defeated by {#list} players!`, yellow)
+		elseif event == "Left" then
+			addFeedEntry("The Giant Duck got bored and waddled away...", yellow)
+		end
+	end)
 	Remotes.LuckyNoodle.OnClientEvent:Connect(function(finder: Player)
 		local lucky = Color3.fromRGB(190, 255, 70)
 		if finder == player then

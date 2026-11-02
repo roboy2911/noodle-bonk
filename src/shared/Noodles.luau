@@ -134,6 +134,23 @@ local Noodles: { [string]: NoodleDef } = {
 		Unlock = { Stat = "Bonks", Amount = 400 },
 	},
 
+	-- The best noodle: only from defeating the Giant Rubber Duck boss
+	Duck = {
+		Id = "Duck",
+		DisplayName = "Duck Noodle",
+		Description = "The best noodle in the game. Help defeat the Giant Rubber Duck to earn it. Press E for a Duck Stampede!",
+		Color = Color3.fromRGB(255, 215, 40),
+		Length = 8.5,
+		Thickness = 1.0,
+		Stiffness = 380,
+		Knockback = 72,
+		Cooldown = 0.45,
+		SoakGain = 16,
+		Ability = "Stampede",
+		AbilityCooldown = 12,
+		Unlock = { Stat = "DuckBosses", Amount = 1 },
+	},
+
 	-- Special noodles: unlocked by doing something, not by Bonks ------------
 
 	Splash = {

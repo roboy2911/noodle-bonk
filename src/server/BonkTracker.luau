@@ -17,6 +17,7 @@ local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local Streaks = require(script.Parent.Streaks)
 local MonetizationService = require(script.Parent.MonetizationService)
+local DuckJar = require(script.Parent.DuckJar)
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {
@@ -104,6 +105,11 @@ local function bonk(character: Model, root: BasePart)
 		bonus = streak and streak.bonus,
 	}
 	Remotes.Bonked:FireAllClients(info)
+
+	-- Every bonk (by a player or a dummy) drops a rubber duck in the jar
+	if attacker or dummyName then
+		DuckJar.add(1)
+	end
 
 	if victim then
 		local humanoid = character:FindFirstChildOfClass("Humanoid")

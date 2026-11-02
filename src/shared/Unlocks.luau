@@ -11,7 +11,7 @@ export type Stats = { [string]: number }
 local Unlocks = {}
 
 -- Every saved stat. Add a name here to start tracking a new one.
-Unlocks.STATS = { "Bonks", "Splashes", "PoolParties", "FriendSessions", "Lucky" }
+Unlocks.STATS = { "Bonks", "Splashes", "PoolParties", "FriendSessions", "Lucky", "DuckBosses" }
 
 local DESCRIPTIONS: { [string]: (number) -> string } = {
 	Bonks = function(amount)
@@ -28,6 +28,9 @@ local DESCRIPTIONS: { [string]: (number) -> string } = {
 	end,
 	Lucky = function()
 		return "1 in 2,500 chance on every bonk"
+	end,
+	DuckBosses = function()
+		return "Help defeat the Giant Rubber Duck"
 	end,
 }
 

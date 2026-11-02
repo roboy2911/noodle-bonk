@@ -108,6 +108,8 @@ local function sortedNoodles(): { NoodleDef }
 			return 0
 		elseif unlock.Stat == "Bonks" then
 			return unlock.Amount
+		elseif unlock.Stat == "DuckBosses" then
+			return 50000 -- the best noodle, right after the Bonks ladder
 		end
 		-- Special noodles after the Bonks ladder, the rare Lucky one last
 		return if unlock.Stat == "Lucky" then 200000 else 100000

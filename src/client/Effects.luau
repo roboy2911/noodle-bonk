@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local CameraController = require(script.Parent.CameraController)
+local DuckFx = require(script.Parent.DuckFx)
 
 local HIT_WORDS = { "BONK!", "BOING!", "WHAP!", "FWUMP!", "SPLOT!" }
 local WATER_COLOR = Color3.fromRGB(150, 220, 255)
@@ -227,6 +228,8 @@ function Effects.start()
 	Remotes.AbilityFx.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 		if kind == "Sound" and type(a) == "string" then
 			Effects.playSound(a, if typeof(b) == "Vector3" then b else nil)
+		elseif kind == "Stampede" and typeof(a) == "Vector3" and typeof(b) == "Vector3" then
+			DuckFx.stampede(a, b)
 		elseif kind == "Splash" and typeof(a) == "Vector3" then
 			Effects.splash(a) -- Splash noodle spray
 		elseif kind == "Shockwave" and typeof(a) == "Vector3" and type(b) == "number" then

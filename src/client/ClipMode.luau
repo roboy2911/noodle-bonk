@@ -47,6 +47,8 @@ local ABILITY_NAMES: { [string]: string } = {
 	Magnet = "Magnet pull",
 	Tornado = "Tornado spin",
 	Vanish = "Vanished",
+	Stampede = "Duck stampede",
+	Quack = "Giant Duck QUACK",
 }
 
 type Highlight = { time: number, stars: number, text: string }

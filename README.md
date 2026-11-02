@@ -114,6 +114,8 @@ src/
     DummySpawner        practice dummies (solo dummy and the admin panel)
     SoloDummy           one fighting dummy when exactly one player is in the server
     DummyFight          dummies that chase players and swing noodles
+    DuckJar             the duck jar: one duck per bonk, summons the boss
+    DuckBoss            the Giant Rubber Duck boss
     GlobalEvents        sends admin announcements and Pool Parties to every server
     AdminService        admin access checks and every admin command
   client/               StarterPlayerScripts.Client
@@ -159,6 +161,27 @@ benches, 6 beach umbrellas (their tops are solid, so you can land on them),
 8 crate piles, then an open edge with a blue stripe. To use your own map,
 put a model named `Arena` in Workspace and the builder skips itself.
 
+## Duck jar and the Giant Rubber Duck
+
+A glass jar on the deck fills with rubber ducks: **one per bonk** (by a
+player or a dummy). Each server has its own jar. At **2,500 ducks**
+(`Config.DuckJar.Target`) it empties and the **Giant Rubber Duck** boss
+drops in over the middle:
+
+- It waddles after the nearest player, belly-bumps anyone close and lets out
+  a QUACK shockwave every 9 seconds. It never walks off the deck on its own.
+- It's heavy: hits only push it 40% as far (`KnockbackScale`), so build up
+  its Soak % and work together.
+- **Bonk it into the pool** and everyone who hit it unlocks the **Duck
+  noodle**. If nobody does within 7 minutes, it leaves.
+- The jar is closed while the boss is out.
+
+To keep it light, the jar's ducks are one rising yellow fill plus a few
+ducks on top, and the duck flying into the jar after each bonk is drawn by
+each player's own game. Admins can set the count or spawn/remove the boss
+from **Admin panel > Server > Duck jar**. Tune everything in
+`Config.DuckJar` and `Config.DuckBoss`.
+
 ## Streaks and the kill feed
 
 Bonk people in a row without falling in yourself to build a streak (shown on
@@ -181,6 +204,7 @@ milestones, ended streaks and admin announcements for everyone.
 | Magnet | Bonk 150 | Magnet: pull everyone within 32 studs toward you (heavy, but its normal hits are softer) |
 | Kraken | Bonk 250 | Tentacle: grab and throw someone over your head |
 | Tornado | Bonk 400 | Tornado: spin for 3 s, hitting everyone your noodle touches |
+| **Duck** | Help defeat the Giant Rubber Duck | Stampede: a row of rubber ducks charges forward and bowls everyone over. The best noodle in the game |
 
 **Special noodles** unlock by doing something instead of bonking:
 
