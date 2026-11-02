@@ -25,7 +25,8 @@ type NoodleDef = Noodles.NoodleDef
 type KnockbackInfo = Remotes.KnockbackInfo
 
 export type HitRecord = {
-	attacker: Player,
+	attacker: Player?, -- nil when a dummy did the hit
+	attackerName: string, -- shown in the kill feed
 	noodleId: string,
 	time: number,
 }
@@ -107,17 +108,26 @@ end
 
 -- Bonk credit ---------------------------------------------------------------
 
-function CombatService.recordHit(target: Model, attacker: Player, noodleId: string)
-	lastHit[target] = { attacker = attacker, noodleId = noodleId, time = os.clock() }
+-- `attacker` is nil for dummies; pass their name as `attackerName` instead.
+function CombatService.recordHit(target: Model, attacker: Player?, noodleId: string, attackerName: string?)
+	lastHit[target] = {
+		attacker = attacker,
+		attackerName = attackerName or (if attacker then attacker.DisplayName else "Someone"),
+		noodleId = noodleId,
+		time = os.clock(),
+	}
 end
 
 -- Who gets credit if `target` falls right now.
 function CombatService.getCredit(target: Model): HitRecord?
 	local record = lastHit[target]
-	if record and os.clock() - record.time <= Config.CreditWindow and record.attacker.Parent then
-		return record
+	if not record or os.clock() - record.time > Config.CreditWindow then
+		return nil
 	end
-	return nil
+	if record.attacker and not record.attacker.Parent then
+		return nil -- they left the game
+	end
+	return record
 end
 
 function CombatService.clearHits(target: Model)
@@ -214,14 +224,16 @@ end
 
 -- Launch `target` along `direction` (flattened) with `power`, using `def`
 -- for ragdoll, stun and Soak. Credits `attacker` and plays hit effects.
+-- Dummies pass nil for `attacker` and their name as `attackerName`.
 function CombatService.strike(
-	attacker: Player,
+	attacker: Player?,
 	target: Model,
 	targetRoot: BasePart,
 	direction: Vector3,
 	power: number,
 	upward: number,
-	def: NoodleDef
+	def: NoodleDef,
+	attackerName: string?
 )
 	if target:GetAttribute("Bubbled") then
 		CombatService.popBubble(target)
@@ -240,7 +252,7 @@ function CombatService.strike(
 		stunTime = def.StunTime,
 		shake = math.clamp(scaled / 150, 0.15, 0.7),
 	})
-	CombatService.recordHit(target, attacker, def.Id)
+	CombatService.recordHit(target, attacker, def.Id, attackerName)
 	Remotes.HitConfirm:FireAllClients(targetRoot.Position, def.Id, attacker)
 end
 

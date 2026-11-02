@@ -21,7 +21,7 @@ Then open a place in Studio (the default Baseplate template is fine) and,
 **in Edit mode (not while playing)**, connect with the Rojo plugin. Check that
 `ReplicatedStorage > Shared` has its modules, then press Play. With
 `Config.AutoBuildArena` on, the server replaces the Baseplate with a test pool
-deck over water and spawns practice dummies.
+deck over water. Playing alone, you get one **Noodle Bot** dummy that fights you.
 
 To test saving in Studio, turn on **Game Settings > Security > Enable Studio
 Access to API Services**. Without it the game runs, but progress resets each session.
@@ -36,6 +36,7 @@ Access to API Services**. Without it the game runs, but progress resets each ses
 | Ctrl | Free the mouse cursor (also freed automatically in menus and chat) |
 | P / ADMIN button | Admin panel (admins only) |
 | M / MUSIC button | Music on/off |
+| K | Clip mode for recording videos (admins only) |
 
 ## 3D models (Blender)
 
@@ -110,7 +111,10 @@ src/
     ArenaBuilder        the arena: pool deck dressed with the models
     Environment         sunny gameplay lighting
     Streaks             bonk streaks: glow, announcements, bonus for ending one
-    DummySpawner        practice dummies (on start, and from the admin panel)
+    DummySpawner        practice dummies (solo dummy and the admin panel)
+    SoloDummy           one fighting dummy when exactly one player is in the server
+    DummyFight          dummies that chase players and swing noodles
+    GlobalEvents        sends admin announcements and Pool Parties to every server
     AdminService        admin access checks and every admin command
   client/               StarterPlayerScripts.Client
     init.client.luau    entry point
@@ -125,6 +129,7 @@ src/
     NoodleMenu          noodle picker with unlock progress
     AdminPanel          admin panel UI
     AdminMovement       fly and noclip for admins
+    ClipMode            clean UI-free cinematic view + highlight log for recording
 ```
 
 ## How a hit works
@@ -181,6 +186,11 @@ milestones, ended streaks and admin announcements for everyone.
 | Whip | Bonk 200 | Lash: yank someone toward you |
 | Kraken | Bonk 300 | Tentacle: grab and throw someone over your head |
 
+**Solo dummy:** when you're the only player in a server, one dummy called
+Noodle Bot spawns and fights you. It's removed as soon as a second player
+joins, and comes back if you're alone again. Turn it off with
+`Config.SoloDummy = false`.
+
 Bonks on practice dummies count toward unlocks **only in Studio**
 (`Config.DummyBonksCountInStudio`), so nobody can farm them in a live game.
 
@@ -213,11 +223,40 @@ Pick a player in the list on the left (you're selected by default), then:
 |---|---|
 | **Player** | Give any noodle (even locked, for this session) · set or add Bonks/Splashes (saved) · reset all their data · kick · ban 1 day / forever · unban by name or UserId · go to them · bring them · reset their character · launch · max Soak · dry off |
 | **Testing** | Toggles for the selected player: unlock all, god mode (can't be hit, falls put you back on the deck), fly (Space up, Q down), noclip, no ability cooldown · set walk speed |
-| **Server** | Spawn/clear dummies · announcement banner for everyone (goes through Roblox's text filter) · soak storm · dry everyone · low gravity · launch everyone · respawn everyone · shut down the server |
+| **Server** | Spawn/clear dummies · dummies fight · announcement banner for every server (goes through Roblox's text filter) · soak storm · dry everyone · low gravity · launch everyone · Pool Party for every server · respawn everyone · shut down the server |
+
+**Dummies fight** makes every dummy grab a noodle, chase the nearest player
+and swing at them, with the normal hit effects and kill feed ("Dummy 2
+bonked you"). It only affects the server you're in, and dummies never earn
+stats. Tune it with `Config.DummyFight`.
+
+**Announcements and Pool Parties started here reach every server** through
+MessagingService (`server/GlobalEvents`). Pool Parties bought from the shop
+stay in the buyer's server. Everything else on the Server tab only affects
+your own server. Cross-server messages need a published game; in an
+unpublished Studio place they only show in your own server.
 
 Risky buttons (kick, ban, reset data, respawn everyone, shut down) need a
 second click within 3 seconds. Bans use Roblox's ban API, which only works in
 a live game, not in Studio.
+
+## Clip mode (recording videos)
+
+For filming TikToks and Shorts. Admins only: press **K**, or **Admin panel >
+Testing > Start clip mode**.
+
+1. Start your screen recording (OBS, Xbox Game Bar...).
+2. Press **K**. The screen flashes white once: that marks time 0:00 for the log.
+3. Play. All screen UI is hidden (BONK! text, splashes and Soak % stay), and
+   the view is pulled back, lowered and smoothed. Swinging still works the
+   same, since only the picture is smoothed, not the camera you aim with.
+4. Press **K** again. A list of highlights pops up, like
+   `0:42.3  **  Big launch on Noodle Bot`, with more stars for better
+   moments. Select all, copy it, and send it along with the video so the
+   editor can jump straight to the good parts. It's also printed in the F9
+   console.
+
+Tune the look with the constants at the top of `client/ClipMode.luau`.
 
 ## Sounds and music
 

@@ -5,7 +5,7 @@
 --
 -- Pick a player on the left (you're selected by default), then use the tabs:
 --   Player:  give noodles, edit stats, moderation, teleports, fun
---   Testing: unlock all, god mode, fly, noclip, no cooldown, walk speed
+--   Testing: unlock all, god mode, fly, noclip, no cooldown, walk speed, clip mode
 --   Server:  dummies, announcements, events, shutdown
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -17,6 +17,7 @@ local Shared = ReplicatedStorage.Shared
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local CameraController = require(script.Parent.CameraController)
+local ClipMode = require(script.Parent.ClipMode)
 local Effects = require(script.Parent.Effects)
 
 local TOGGLE_ACTION = "ToggleAdminPanel"
@@ -366,6 +367,17 @@ local function buildTestingPage(page: ScrollingFrame)
 	makeButton(speedRow, "Set speed").Activated:Connect(function()
 		send("SetWalkSpeed", { value = speedBox.Text })
 	end)
+
+	header(page, "Recording")
+	note(
+		page,
+		"Clip mode: hides all UI, smooth cinematic camera, and logs big moments. Start recording first, then press K (or this button). Press K again to stop and see the highlight list."
+	)
+	local clipRow = row(page)
+	makeButton(clipRow, "Start clip mode (K)", GOOD_COLOR, 190).Activated:Connect(function()
+		AdminPanel.setOpen(false)
+		ClipMode.setEnabled(true)
+	end)
 end
 
 local function buildServerPage(page: ScrollingFrame)
@@ -378,9 +390,13 @@ local function buildServerPage(page: ScrollingFrame)
 	makeButton(dummyRow, "Clear dummies").Activated:Connect(function()
 		send("ClearDummies")
 	end)
+	toggleButton(dummyRow, "Dummies fight", "ToggleDummyFight", function()
+		return workspace:GetAttribute("DummyFight") == true
+	end)
+	note(page, "Dummies fight: they grab noodles and chase the nearest player. Only this server.")
 
 	header(page, "Announcement")
-	note(page, "Shows a big banner for everyone. Goes through Roblox's text filter.")
+	note(page, "Shows a big banner for everyone in every server. Goes through Roblox's text filter.")
 	local announceRow = row(page)
 	local messageBox = makeBox(announceRow, "Message", 300)
 	makeButton(announceRow, "Send", GOOD_COLOR, 90).Activated:Connect(function()
@@ -402,7 +418,7 @@ local function buildServerPage(page: ScrollingFrame)
 	makeButton(eventRow, "Launch everyone").Activated:Connect(function()
 		send("LaunchAll")
 	end)
-	makeButton(eventRow, "Start Pool Party", Color3.fromRGB(255, 105, 180)).Activated:Connect(function()
+	makeButton(eventRow, "Pool Party (all servers)", Color3.fromRGB(255, 105, 180)).Activated:Connect(function()
 		send("StartPoolParty")
 	end)
 	confirmButton(eventRow, "Respawn everyone", function()

@@ -152,6 +152,8 @@ end
 
 local function onBonked(info: { [string]: any })
 	local attacker: Player? = info.attacker
+	local dummyName: string? = info.attackerName -- a dummy bonked them
+	local byName: string? = if attacker then attacker.DisplayName else dummyName
 	local victim: Player? = info.victim
 	local victimName: string = info.victimName
 	local position: Vector3 = info.position
@@ -165,7 +167,7 @@ local function onBonked(info: { [string]: any })
 	if attacker == player then
 		addFeedEntry(`You bonked {victimName} into the deep end`, DID_BONK_COLOR)
 	elseif victim == player then
-		addFeedEntry(if attacker then `{attacker.DisplayName} bonked you` else "You fell in the pool", GOT_BONKED_COLOR)
+		addFeedEntry(if byName then `{byName} bonked you` else "You fell in the pool", GOT_BONKED_COLOR)
 	end
 
 	-- Feed: big moments, for everyone
@@ -184,7 +186,7 @@ local function onBonked(info: { [string]: any })
 
 	if victim == player then
 		Effects.playSound("Launched")
-		BonkUI.showBanner(if attacker then `BONKED by {attacker.DisplayName}!` else "SPLASH! You fell in.", GOT_BONKED_COLOR)
+		BonkUI.showBanner(if byName then `BONKED by {byName}!` else "SPLASH! You fell in.", GOT_BONKED_COLOR)
 	elseif attacker == player then
 		if milestoneTitle and streak then
 			Effects.playSound("Streak")
