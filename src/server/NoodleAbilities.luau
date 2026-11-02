@@ -10,6 +10,7 @@ local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local HitQuery = require(Shared.HitQuery)
+local Friends = require(script.Parent.Friends)
 
 export type AbilityContext = {
 	player: Player,
@@ -145,6 +146,43 @@ end
 Abilities.Tornado = function(ctx)
 	sound("Tornado", ctx.root.Position)
 	ctx.character:SetAttribute("SpinningUntil", serverNow() + Config.TornadoTime)
+end
+
+-- Splash: spray water in front of you. Soaks everyone it reaches (so your
+-- next hits launch them further) with only a small push.
+Abilities.Spray = function(ctx)
+	sound("Splash", ctx.root.Position)
+	for _, target in HitQuery.findTargets(ctx.character, Config.SprayRange, 70, 8) do
+		local _, targetRoot = ctx.combat.getLiving(target)
+		if targetRoot and not ctx.combat.isProtected(target) then
+			ctx.combat.addSoak(target, Config.SpraySoak)
+			local push = flat(targetRoot.Position - ctx.root.Position)
+			ctx.combat.applyKnockback(target, {
+				velocity = (if push.Magnitude > 0.01 then push.Unit else Vector3.zero) * 14,
+				ragdollTime = 0,
+			})
+			ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
+			Remotes.AbilityFx:FireAllClients("Splash", targetRoot.Position)
+		end
+	end
+end
+
+-- Squad: leap over to your closest friend in the server.
+Abilities.Rally = function(ctx)
+	local _, friendRoot = Friends.nearestFriend(ctx.player, ctx.root.Position)
+	if not friendRoot then
+		return
+	end
+	local toFriend = flat(friendRoot.Position - ctx.root.Position)
+	if toFriend.Magnitude < 6 then
+		return -- already next to them
+	end
+	sound("Boing", ctx.root.Position)
+	-- A jump arc that lands roughly next to them
+	Remotes.Knockback:FireClient(ctx.player, {
+		velocity = toFriend.Unit * math.clamp(toFriend.Magnitude * 1.1, 30, 110) + Vector3.yAxis * 55,
+		ragdollTime = 0,
+	})
 end
 
 return Abilities

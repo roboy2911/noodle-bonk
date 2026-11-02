@@ -125,6 +125,37 @@ function Effects.splash(position: Vector3)
 	Debris:AddItem(part, 2)
 end
 
+-- A burst of colorful confetti (Party noodle hits).
+function Effects.confetti(position: Vector3)
+	local part = effectPart()
+	part.Transparency = 1
+	part.Size = Vector3.new(1, 1, 1)
+	part.Position = position
+	part.Parent = workspace
+
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 160)),
+		ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 220, 60)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 220, 255)),
+		ColorSequenceKeypoint.new(0.75, Color3.fromRGB(120, 255, 120)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 110, 255)),
+	})
+	emitter.LightEmission = 0.4
+	emitter.Size = NumberSequence.new(0.35)
+	emitter.Transparency = NumberSequence.new(0, 1)
+	emitter.Lifetime = NumberRange.new(0.8, 1.4)
+	emitter.Speed = NumberRange.new(18, 34)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Acceleration = Vector3.new(0, -35, 0)
+	emitter.RotSpeed = NumberRange.new(-300, 300)
+	emitter.Rate = 0
+	emitter.Parent = part
+	emitter:Emit(45)
+
+	Debris:AddItem(part, 2)
+end
+
 -- An expanding ring on the ground (Pogo slam).
 function Effects.shockwave(position: Vector3, radius: number)
 	local ring = effectPart()
@@ -185,6 +216,9 @@ function Effects.start()
 		Effects.playSound("Hit", position)
 		Effects.playSound("HitBoink", position)
 		Effects.popText(position, HIT_WORDS[math.random(#HIT_WORDS)], if def then def.Color else Color3.new(1, 1, 1))
+		if def and def.Confetti then
+			Effects.confetti(position)
+		end
 		if attacker == player then
 			CameraController.shake(0.2)
 		end
@@ -193,6 +227,8 @@ function Effects.start()
 	Remotes.AbilityFx.OnClientEvent:Connect(function(kind: string, a: any, b: any)
 		if kind == "Sound" and type(a) == "string" then
 			Effects.playSound(a, if typeof(b) == "Vector3" then b else nil)
+		elseif kind == "Splash" and typeof(a) == "Vector3" then
+			Effects.splash(a) -- Splash noodle spray
 		elseif kind == "Shockwave" and typeof(a) == "Vector3" and type(b) == "number" then
 			Effects.shockwave(a, b)
 		elseif kind == "Tentacle" and typeof(a) == "Instance" and typeof(b) == "Instance" then

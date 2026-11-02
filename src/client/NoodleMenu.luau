@@ -103,7 +103,14 @@ local function sortedNoodles(): { NoodleDef }
 		if def.Id == Config.DefaultNoodle then
 			return -1
 		end
-		return if def.Unlock then def.Unlock.Amount else 0
+		local unlock = def.Unlock
+		if not unlock then
+			return 0
+		elseif unlock.Stat == "Bonks" then
+			return unlock.Amount
+		end
+		-- Special noodles after the Bonks ladder, the rare Lucky one last
+		return if unlock.Stat == "Lucky" then 200000 else 100000
 	end
 	table.sort(list, function(a, b)
 		local ra, rb = rank(a), rank(b)

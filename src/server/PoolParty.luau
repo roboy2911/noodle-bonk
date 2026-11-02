@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
+local DataService = require(script.Parent.DataService)
 
 local PoolParty = {}
 
@@ -53,8 +54,22 @@ function PoolParty.start(starterName: string)
 	local myToken = token
 	task.delay(base + duration - serverNow(), finish, myToken)
 
+	-- Being here for a party unlocks the Party noodle
+	for _, player in Players:GetPlayers() do
+		DataService.increment(player, "PoolParties", 1)
+	end
+
 	Remotes.PoolParty:FireAllClients(starterName, duration)
 	print(`[Noodle Bonk] Pool Party started by {starterName} ({#Players:GetPlayers()} players)`)
+end
+
+-- Players who join while a party is on get credit for it too.
+function PoolParty.init()
+	Players.PlayerAdded:Connect(function(player)
+		if PoolParty.isActive() and DataService.waitForData(player) and player.Parent then
+			DataService.increment(player, "PoolParties", 1)
+		end
+	end)
 end
 
 return PoolParty

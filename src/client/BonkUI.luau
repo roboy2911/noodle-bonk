@@ -203,6 +203,16 @@ end
 function BonkUI.start()
 	build()
 	Remotes.Bonked.OnClientEvent:Connect(onBonked)
+	Remotes.LuckyNoodle.OnClientEvent:Connect(function(finder: Player)
+		local lucky = Color3.fromRGB(190, 255, 70)
+		if finder == player then
+			Effects.playSound("Streak")
+			BonkUI.showBanner("LUCKY NOODLE! 1 in 2,500!", lucky, 4)
+			addFeedEntry("You found the LUCKY NOODLE! Check your noodles (N)", lucky)
+		else
+			addFeedEntry(`{finder.DisplayName} found the LUCKY NOODLE! (1 in 2,500)`, lucky)
+		end
+	end)
 	Remotes.Announcement.OnClientEvent:Connect(function(text: string, from: string)
 		Effects.playSound("Announcement")
 		BonkUI.showBanner(text, ANNOUNCEMENT_COLOR, 5)

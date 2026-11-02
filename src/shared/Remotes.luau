@@ -14,8 +14,19 @@ export type KnockbackInfo = {
 }
 
 local FOLDER_NAME = "NoodleRemotes"
-local EVENT_NAMES =
-	{ "NoodleHit", "UseAbility", "Knockback", "HitConfirm", "Bonked", "SelectNoodle", "AbilityFx", "Announcement", "SelectSkin", "PoolParty" }
+local EVENT_NAMES = {
+	"NoodleHit",
+	"UseAbility",
+	"Knockback",
+	"HitConfirm",
+	"Bonked",
+	"SelectNoodle",
+	"AbilityFx",
+	"Announcement",
+	"SelectSkin",
+	"PoolParty",
+	"LuckyNoodle",
+}
 local FUNCTION_NAMES = { "AdminRequest" }
 
 local folder: Instance
@@ -71,6 +82,8 @@ return {
 	SelectSkin = get("SelectSkin"),
 	-- server -> all clients: (starterName: string, duration: number) a Pool Party started
 	PoolParty = get("PoolParty"),
+	-- server -> all clients: (finder: Player) someone just found the Lucky noodle
+	LuckyNoodle = get("LuckyNoodle"),
 	-- client -> server: (command: string, args: { [string]: any }) -> (success: boolean, message: string)
 	AdminRequest = getFunction("AdminRequest"),
 }

@@ -16,6 +16,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage.Shared
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
+local Unlocks = require(Shared.Unlocks)
 local CameraController = require(script.Parent.CameraController)
 local ClipMode = require(script.Parent.ClipMode)
 local Effects = require(script.Parent.Effects)
@@ -302,7 +303,7 @@ local function buildPlayerPage(page: ScrollingFrame)
 	header(page, "Stats (saved)")
 	local statRow = row(page)
 	local amountBox = makeBox(statRow, "Amount", 90)
-	for _, stat in { "Bonks", "Splashes" } do
+	for _, stat in Unlocks.STATS do
 		makeButton(statRow, `Set {stat}`, nil, 110).Activated:Connect(function()
 			send("SetStat", { stat = stat, value = amountBox.Text })
 		end)

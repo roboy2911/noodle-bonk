@@ -11,7 +11,7 @@ export type Stats = { [string]: number }
 local Unlocks = {}
 
 -- Every saved stat. Add a name here to start tracking a new one.
-Unlocks.STATS = { "Bonks", "Splashes" }
+Unlocks.STATS = { "Bonks", "Splashes", "PoolParties", "FriendSessions", "Lucky" }
 
 local DESCRIPTIONS: { [string]: (number) -> string } = {
 	Bonks = function(amount)
@@ -19,6 +19,15 @@ local DESCRIPTIONS: { [string]: (number) -> string } = {
 	end,
 	Splashes = function(amount)
 		return `Fall in the pool {amount} times`
+	end,
+	PoolParties = function()
+		return "Be in a server during a Pool Party"
+	end,
+	FriendSessions = function()
+		return "Play in a server with a friend"
+	end,
+	Lucky = function()
+		return "1 in 2,500 chance on every bonk"
 	end,
 }
 
@@ -69,6 +78,9 @@ function Unlocks.describe(def: NoodleDef, stats: Stats): string
 	end
 	local describe = DESCRIPTIONS[requirement.Stat]
 	local text = if describe then describe(requirement.Amount) else `{requirement.Stat}: {requirement.Amount}`
+	if requirement.Amount <= 1 then
+		return text -- a one-time thing, no progress to show
+	end
 	local have = math.min(stats[requirement.Stat] or 0, requirement.Amount)
 	return `{text} ({have}/{requirement.Amount})`
 end

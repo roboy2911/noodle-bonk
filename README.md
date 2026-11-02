@@ -178,13 +178,23 @@ milestones, ended streaks and admin announcements for everyone.
 | Classic | Free | none |
 | Pogo | Bonk 25 | PogoSlam: bounce up, shockwave on landing |
 | Invisible | Bonk 75 | Vanish: turn invisible for 4 s (hitting someone ends it). Other players can never see the noodle itself |
-| Magnet | Bonk 150 | Magnet: pull everyone within 32 studs toward you |
+| Magnet | Bonk 150 | Magnet: pull everyone within 32 studs toward you (heavy, but its normal hits are softer) |
 | Kraken | Bonk 250 | Tentacle: grab and throw someone over your head |
 | Tornado | Bonk 400 | Tornado: spin for 3 s, hitting everyone your noodle touches |
 
-Every noodle is unlocked with Bonks, and the stronger it is, the more it
-costs. Ability timings are in `Config.luau` (`VanishTime`, `MagnetRadius`,
-`TornadoTime`, `TornadoSpinSpeed`).
+**Special noodles** unlock by doing something instead of bonking:
+
+| Noodle | Unlock | Ability (E) |
+|---|---|---|
+| Splash | Fall in the pool 50 times | Spray: soak everyone in front of you (+40% Soak), tiny push |
+| Party | Be in a server during a Pool Party (or join during one) | none, but confetti bursts on every hit |
+| Squad | Play in a server with a Roblox friend | Rally: leap over to your closest friend |
+| Lucky | 1 in 2,500 chance on every counted bonk (announced to the server) | none, slightly better than Classic |
+
+The main ladder unlocks with Bonks, and the stronger the noodle, the more it
+costs. The special unlocks are saved stats too (`PoolParties`,
+`FriendSessions`, `Lucky`); admins can set them from the Player tab to test. Ability timings are in `Config.luau` (`VanishTime`, `MagnetRadius`,
+`TornadoTime`, `TornadoSpinSpeed`, `SprayRange`, `SpraySoak`, `LuckyChance`).
 
 **Solo dummy:** when you're the only player in a server, one dummy called
 Noodle Bot spawns and fights you. It's removed as soon as a second player

@@ -86,6 +86,9 @@ local Config = {
 	MagnetRadius = 32, -- Magnet noodle: studs it pulls from
 	TornadoTime = 3, -- Tornado noodle: seconds you spin
 	TornadoSpinSpeed = 22, -- radians per second (about 3.5 turns a second)
+	SprayRange = 16, -- Splash noodle: studs the spray reaches
+	SpraySoak = 40, -- Splash noodle: Soak added by the spray
+	LuckyChance = 2500, -- Lucky noodle: 1 in this many bonks unlocks it
 
 	-- Noodle tool
 	DefaultNoodle = "Classic",

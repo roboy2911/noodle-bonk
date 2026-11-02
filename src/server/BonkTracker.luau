@@ -77,6 +77,12 @@ local function bonk(character: Model, root: BasePart)
 	if attacker and counts then
 		-- 2x Bonks pass and Pool Parties make a bonk worth more
 		DataService.increment(attacker, "Bonks", MonetizationService.bonkValue(attacker))
+		-- Every counted bonk is a lottery ticket for the Lucky noodle
+		if DataService.getStat(attacker, "Lucky") < 1 and math.random(Config.LuckyChance) == 1 then
+			DataService.setStat(attacker, "Lucky", 1)
+			Remotes.LuckyNoodle:FireAllClients(attacker)
+			print(`[Noodle Bonk] {attacker.Name} found the Lucky noodle!`)
+		end
 	end
 	if victim then
 		DataService.increment(victim, "Splashes", 1)

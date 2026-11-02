@@ -26,6 +26,7 @@ export type NoodleDef = {
 	StunTime: number?, -- seconds the victim can't move or swing
 	WalkSpeed: number?, -- your walk speed while holding it
 	Invisible: boolean?, -- other players can't see this noodle (you see it faintly)
+	Confetti: boolean?, -- confetti bursts out on every hit
 
 	Ability: string?, -- name of an active ability (E / ButtonY / mobile button)
 	AbilityCooldown: number?,
@@ -33,7 +34,8 @@ export type NoodleDef = {
 	Unlock: UnlockRequirement?, -- nil = free from the start
 }
 
--- Unlocks go up with how strong the noodle is, and all come from Bonks.
+-- The main ladder unlocks with Bonks, going up with how strong the noodle
+-- is. Special noodles further down unlock in other ways.
 local Noodles: { [string]: NoodleDef } = {
 	Classic = {
 		Id = "Classic",
@@ -90,7 +92,7 @@ local Noodles: { [string]: NoodleDef } = {
 		Length = 6.5,
 		Thickness = 1.0,
 		Stiffness = 450,
-		Knockback = 62,
+		Knockback = 46,
 		Cooldown = 0.7,
 		SoakGain = 14,
 		WalkSpeed = 15,
@@ -130,6 +132,69 @@ local Noodles: { [string]: NoodleDef } = {
 		Ability = "Tornado",
 		AbilityCooldown = 14,
 		Unlock = { Stat = "Bonks", Amount = 400 },
+	},
+
+	-- Special noodles: unlocked by doing something, not by Bonks ------------
+
+	Splash = {
+		Id = "Splash",
+		DisplayName = "Splash Noodle",
+		Description = "Soaks people fast. Press E to spray water and soak everyone in front of you.",
+		Color = Color3.fromRGB(60, 170, 255),
+		Length = 7,
+		Thickness = 0.85,
+		Stiffness = 240,
+		Knockback = 42,
+		Cooldown = 0.5,
+		SoakGain = 22,
+		Ability = "Spray",
+		AbilityCooldown = 9,
+		Unlock = { Stat = "Splashes", Amount = 50 },
+	},
+
+	Party = {
+		Id = "Party",
+		DisplayName = "Party Noodle",
+		Description = "Confetti on every bonk. Earned by being in a server during a Pool Party.",
+		Color = Color3.fromRGB(170, 90, 255),
+		Length = 7,
+		Thickness = 0.85,
+		Stiffness = 270,
+		Knockback = 57,
+		Cooldown = 0.5,
+		SoakGain = 12,
+		Confetti = true,
+		Unlock = { Stat = "PoolParties", Amount = 1 },
+	},
+
+	Squad = {
+		Id = "Squad",
+		DisplayName = "Squad Noodle",
+		Description = "For playing with friends. Press E to leap over to your friend.",
+		Color = Color3.fromRGB(80, 210, 110),
+		Length = 7,
+		Thickness = 0.8,
+		Stiffness = 270,
+		Knockback = 55,
+		Cooldown = 0.5,
+		SoakGain = 12,
+		Ability = "Rally",
+		AbilityCooldown = 8,
+		Unlock = { Stat = "FriendSessions", Amount = 1 },
+	},
+
+	Lucky = {
+		Id = "Lucky",
+		DisplayName = "Lucky Noodle",
+		Description = "Super rare. Every bonk has a 1 in 2,500 chance to unlock it.",
+		Color = Color3.fromRGB(190, 255, 70),
+		Length = 7.5,
+		Thickness = 0.8,
+		Stiffness = 280,
+		Knockback = 60,
+		Cooldown = 0.45,
+		SoakGain = 13,
+		Unlock = { Stat = "Lucky", Amount = 1 },
 	},
 }
 
