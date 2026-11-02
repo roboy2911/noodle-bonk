@@ -5,7 +5,7 @@
 --
 -- Pick a player on the left (you're selected by default), then use the tabs:
 --   Player:  give noodles, edit stats, moderation, teleports, fun
---   Testing: unlock all, god mode, fly, noclip, no cooldown, walk speed
+--   Testing: unlock all, god mode, fly, noclip, no cooldown, walk speed, clip mode
 --   Server:  dummies, announcements, events, shutdown
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -17,6 +17,7 @@ local Shared = ReplicatedStorage.Shared
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local CameraController = require(script.Parent.CameraController)
+local ClipMode = require(script.Parent.ClipMode)
 local Effects = require(script.Parent.Effects)
 
 local TOGGLE_ACTION = "ToggleAdminPanel"
@@ -365,6 +366,17 @@ local function buildTestingPage(page: ScrollingFrame)
 	local speedBox = makeBox(speedRow, "Speed (0 = normal)", 150)
 	makeButton(speedRow, "Set speed").Activated:Connect(function()
 		send("SetWalkSpeed", { value = speedBox.Text })
+	end)
+
+	header(page, "Recording")
+	note(
+		page,
+		"Clip mode: hides all UI, smooth cinematic camera, and logs big moments. Start recording first, then press K (or this button). Press K again to stop and see the highlight list."
+	)
+	local clipRow = row(page)
+	makeButton(clipRow, "Start clip mode (K)", GOOD_COLOR, 190).Activated:Connect(function()
+		AdminPanel.setOpen(false)
+		ClipMode.setEnabled(true)
 	end)
 end
 

@@ -36,6 +36,7 @@ Access to API Services**. Without it the game runs, but progress resets each ses
 | Ctrl | Free the mouse cursor (also freed automatically in menus and chat) |
 | P / ADMIN button | Admin panel (admins only) |
 | M / MUSIC button | Music on/off |
+| K | Clip mode for recording videos (admins only) |
 
 ## 3D models (Blender)
 
@@ -128,6 +129,7 @@ src/
     NoodleMenu          noodle picker with unlock progress
     AdminPanel          admin panel UI
     AdminMovement       fly and noclip for admins
+    ClipMode            clean UI-free cinematic view + highlight log for recording
 ```
 
 ## How a hit works
@@ -237,6 +239,24 @@ unpublished Studio place they only show in your own server.
 Risky buttons (kick, ban, reset data, respawn everyone, shut down) need a
 second click within 3 seconds. Bans use Roblox's ban API, which only works in
 a live game, not in Studio.
+
+## Clip mode (recording videos)
+
+For filming TikToks and Shorts. Admins only: press **K**, or **Admin panel >
+Testing > Start clip mode**.
+
+1. Start your screen recording (OBS, Xbox Game Bar...).
+2. Press **K**. The screen flashes white once: that marks time 0:00 for the log.
+3. Play. All screen UI is hidden (BONK! text, splashes and Soak % stay), and
+   the view is pulled back, lowered and smoothed. Swinging still works the
+   same, since only the picture is smoothed, not the camera you aim with.
+4. Press **K** again. A list of highlights pops up, like
+   `0:42.3  **  Big launch on Noodle Bot`, with more stars for better
+   moments. Select all, copy it, and send it along with the video so the
+   editor can jump straight to the good parts. It's also printed in the F9
+   console.
+
+Tune the look with the constants at the top of `client/ClipMode.luau`.
 
 ## Sounds and music
 
