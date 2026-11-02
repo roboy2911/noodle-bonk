@@ -95,19 +95,22 @@ local Config = {
 	-- pool, and everyone who hit it unlocks the Duck noodle.
 	DuckJar = {
 		Target = 2500, -- ducks needed to summon the boss
-		Spot = Vector3.new(47.6, 0, 27.5), -- where the jar stands on the deck
+		Spot = Vector3.new(199, -12, 115), -- bottom of the jar: out in the pool, past the deck edge
+		Scale = 4, -- 4x a normal jar (48 studs tall)
 	},
 	DuckBoss = {
 		Scale = 1.6, -- size of the duck model (1 = the 9-stud decoration)
 		BodySize = Vector3.new(11, 9, 13), -- its invisible hitbox
-		KnockbackScale = 0.4, -- it's heavy: hits push it this much of normal
-		WalkSpeed = 9,
-		BumpRange = 11, -- belly bump anyone this close
-		BumpCooldown = 2,
-		BumpPower = 70,
-		QuackEvery = 9, -- seconds between QUACK shockwaves
-		QuackRadius = 24,
-		QuackPower = 60,
+		MaxHP = 2000,
+		DamagePerPower = 0.5, -- damage = hit power x this (a full Classic hit at 0% Soak is about 27)
+		WalkSpeed = 7,
+		BumpRange = 3, -- belly bump anyone this close to its body
+		BumpCooldown = 4, -- per player
+		BumpPower = 55,
+		QuackEvery = 15, -- seconds between QUACK shockwaves
+		QuackRadius = 22,
+		QuackPower = 50,
+		RestAfterAttack = 1.5, -- seconds it stands still after attacking
 		Lifetime = 420, -- seconds before it gets bored and leaves
 		StayInside = 20, -- it won't walk closer than this to the deck edge
 	},

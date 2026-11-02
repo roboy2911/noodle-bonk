@@ -109,6 +109,13 @@ end
 -- Bonk credit ---------------------------------------------------------------
 
 local hitListeners: { (target: Model, attacker: Player?) -> () } = {}
+local strikeListeners: { (target: Model, attacker: Player?, power: number) -> () } = {}
+
+-- Calls `callback(target, attacker, power)` for every noodle hit, with the
+-- final launch power after Soak (the duck boss turns it into damage).
+function CombatService.onStrike(callback: (target: Model, attacker: Player?, power: number) -> ())
+	table.insert(strikeListeners, callback)
+end
 
 -- Calls `callback(target, attacker)` whenever anyone is hit (e.g. the duck
 -- boss uses it to remember everyone who hit it).
@@ -216,6 +223,9 @@ local function pushNpc(target: Model, humanoid: Humanoid, root: BasePart, info: 
 end
 
 function CombatService.applyKnockback(target: Model, info: KnockbackInfo)
+	if target:GetAttribute("NoKnockback") then
+		return -- can't be pushed around (the duck boss)
+	end
 	if info.stunTime and info.stunTime > 0 then
 		local current = target:GetAttribute("StunnedUntil")
 		local untilTime = serverNow() + info.stunTime
@@ -268,6 +278,9 @@ function CombatService.strike(
 
 	local soak = CombatService.addSoak(target, def.SoakGain)
 	local scaled = power * (1 + soak / 100)
+	for _, callback in strikeListeners do
+		task.spawn(callback, target, attacker, scaled)
+	end
 	local flatDirection = flat(direction)
 	if flatDirection.Magnitude < 0.01 then
 		flatDirection = flat(targetRoot.CFrame.LookVector) * -1

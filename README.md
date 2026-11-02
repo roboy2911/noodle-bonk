@@ -163,17 +163,19 @@ put a model named `Arena` in Workspace and the builder skips itself.
 
 ## Duck jar and the Giant Rubber Duck
 
-A glass jar on the deck fills with rubber ducks: **one per bonk** (by a
-player or a dummy). Each server has its own jar. At **2,500 ducks**
-(`Config.DuckJar.Target`) it empties and the **Giant Rubber Duck** boss
-drops in over the middle:
+A giant glass jar fills with rubber ducks: **one per bonk** (by a player
+or a dummy). It stands on a rock out in the pool, past the edge of the deck,
+and none of it can be touched, so nobody can climb it. Each server has its
+own jar. At **2,500 ducks** (`Config.DuckJar.Target`) it empties and the
+**Giant Rubber Duck** boss drops in over the middle:
 
-- It waddles after the nearest player, belly-bumps anyone close and lets out
-  a QUACK shockwave every 9 seconds. It never walks off the deck on its own.
-- It's heavy: hits only push it 40% as far (`KnockbackScale`), so build up
-  its Soak % and work together.
-- **Bonk it into the pool** and everyone who hit it unlocks the **Duck
-  noodle**. If nobody does within 7 minutes, it leaves.
+- It has an **HP bar** (2,000 HP) and can't be pushed around. Every noodle
+  hit does damage, and Soak makes hits stronger, so soak it first.
+- It waddles after the nearest player, belly-bumps anyone right next to it,
+  and lets out a QUACK shockwave every 15 seconds. After each attack it
+  stands still for 1.5 seconds: that's your window.
+- At 0 HP, everyone who hit it unlocks the **Duck noodle**. If nobody beats
+  it within 7 minutes, it leaves.
 - The jar is closed while the boss is out.
 
 To keep it light, the jar's ducks are one rising yellow fill plus a few

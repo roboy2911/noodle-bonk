@@ -1,11 +1,12 @@
 --!strict
 -- The Giant Rubber Duck boss. The duck jar (server/DuckJar) spawns it when
--- it's full. It waddles after the nearest player, belly-bumps anyone close
--- and lets out a QUACK shockwave every few seconds. It's heavy, so it takes
--- a lot of hits (and Soak) to move.
+-- it's full. It waddles after the nearest player, belly-bumps anyone right
+-- next to it and lets out a QUACK shockwave now and then. After each attack
+-- it stops for a moment, which is your chance to hit back.
 --
--- Bonk it into the pool to win: everyone who hit it gets +1 "DuckBosses",
--- which unlocks the Duck noodle. If nobody manages it within
+-- It can't be knocked around. Instead it has an HP bar: every noodle hit
+-- does damage (more the more soaked it is). At 0 HP it's defeated, and
+-- everyone who hit it gets +1 "DuckBosses", which unlocks the Duck noodle. If nobody manages it within
 -- Config.DuckBoss.Lifetime, it gets bored and leaves.
 --
 -- Only affects the server it spawned in.
@@ -30,12 +31,18 @@ local BEAK_ORANGE = Color3.fromRGB(255, 140, 30)
 
 local DuckBoss = {}
 
+local updateBar: () -> () -- defined further down
+
 local combat: any -- CombatService, set in start()
 local boss: Model? = nil
 local humanoid: Humanoid? = nil
 local root: BasePart? = nil
 local spawnedAt = 0
 local lastQuack = 0
+local restUntil = 0 -- it stands still after attacking
+local hp = 0
+local hpFill: Frame? = nil
+local hpText: TextLabel? = nil
 local hitters: { [Player]: boolean } = {}
 local lastBump: { [Model]: number } = {}
 local goneCallbacks: { () -> () } = {}
@@ -176,8 +183,55 @@ local function build(at: Vector3): Model
 	hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	hum.Parent = model
 
-	model:SetAttribute("KnockbackScale", s.KnockbackScale)
+	model:SetAttribute("NoKnockback", true)
 	model:SetAttribute("NoRagdoll", true)
+	model:SetAttribute("MaxHP", s.MaxHP)
+	model:SetAttribute("HP", s.MaxHP)
+
+	-- Big HP bar over its head
+	local bar = Instance.new("BillboardGui")
+	bar.Name = "HealthBar"
+	bar.Size = UDim2.fromScale(16, 2.2) -- studs
+	bar.StudsOffset = Vector3.new(0, s.BodySize.Y / 2 + 9 * s.Scale * 0.55, 0)
+	bar.AlwaysOnTop = true
+	bar.MaxDistance = 400
+	bar.LightInfluence = 0
+	bar.Parent = body
+
+	local back = Instance.new("Frame")
+	back.Size = UDim2.fromScale(1, 0.55)
+	back.Position = UDim2.fromScale(0, 0.45)
+	back.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	back.BorderSizePixel = 0
+	back.Parent = bar
+	local backCorner = Instance.new("UICorner")
+	backCorner.CornerRadius = UDim.new(0.4, 0)
+	backCorner.Parent = back
+	local backStroke = Instance.new("UIStroke")
+	backStroke.Thickness = 2
+	backStroke.Parent = back
+
+	local fillFrame = Instance.new("Frame")
+	fillFrame.Size = UDim2.fromScale(1, 1)
+	fillFrame.BackgroundColor3 = DUCK_YELLOW
+	fillFrame.BorderSizePixel = 0
+	fillFrame.Parent = back
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(0.4, 0)
+	fillCorner.Parent = fillFrame
+
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.fromScale(1, 0.45)
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.LuckiestGuy
+	text.TextScaled = true
+	text.TextColor3 = Color3.new(1, 1, 1)
+	text.Parent = bar
+	local textStroke = Instance.new("UIStroke")
+	textStroke.Thickness = 2
+	textStroke.Parent = text
+
+	hpFill, hpText = fillFrame, text
 	model:SetAttribute("ExtraRadius", math.max(s.BodySize.X, s.BodySize.Z) / 2 - Config.BodyRadius)
 	model:AddTag(TAG)
 	return model
@@ -230,6 +284,9 @@ function DuckBoss.spawn(): boolean
 	boss, root, humanoid = model, body, model:FindFirstChildOfClass("Humanoid")
 	spawnedAt = os.clock()
 	lastQuack = os.clock()
+	restUntil = os.clock() + 3 -- a moment to get ready after it lands
+	hp = settings().MaxHP
+	updateBar()
 	Remotes.DuckBoss:FireAllClients("Spawned")
 	print("[Noodle Bonk] The Giant Duck has appeared!")
 	return true
@@ -272,6 +329,34 @@ local function hit(character: Model, targetRoot: BasePart, from: Vector3, power:
 	combat.strike(nil, character, targetRoot, away, power, upward, Noodles.Duck, NAME)
 end
 
+updateBar = function()
+	local s = settings()
+	local fraction = math.clamp(hp / s.MaxHP, 0, 1)
+	if hpFill then
+		hpFill.Size = UDim2.fromScale(fraction, 1)
+		hpFill.BackgroundColor3 = Color3.fromRGB(230, 60, 60):Lerp(DUCK_YELLOW, fraction)
+	end
+	if hpText then
+		hpText.Text = `GIANT DUCK  {math.ceil(hp)} / {s.MaxHP}`
+	end
+	if boss then
+		boss:SetAttribute("HP", math.ceil(hp))
+	end
+end
+
+-- A noodle hit: damage based on how hard it was (Soak makes it hit harder).
+local function damage(amount: number)
+	local body = root
+	if not boss or not body or hp <= 0 then
+		return
+	end
+	hp -= amount
+	updateBar()
+	if hp <= 0 then
+		defeated(body.Position)
+	end
+end
+
 local function think()
 	local model, hum, body = boss, humanoid, root
 	if not model or not hum or not body then
@@ -298,8 +383,18 @@ local function think()
 		end
 	end
 
-	-- Chase the nearest player, but never walk off the deck by itself
-	if nearest then
+	local now = os.clock()
+	local reach = s.BumpRange + math.max(s.BodySize.X, s.BodySize.Z) / 2
+
+	-- Resting after an attack: stand still and take hits
+	if now < restUntil then
+		hum:MoveTo(here)
+		return
+	end
+
+	-- Chase the nearest player (stopping once it's next to them), but never
+	-- walk off the deck by itself
+	if nearest and nearestDistance > reach - 1 then
 		local limit = Config.ArenaDiameter / 2 - s.StayInside
 		local goal = flat(nearest.root.Position)
 		if goal.Magnitude > limit then
@@ -311,9 +406,7 @@ local function think()
 	end
 
 	-- Belly bump anyone right next to it
-	local now = os.clock()
 	local bumped = false
-	local reach = s.BumpRange + math.max(s.BodySize.X, s.BodySize.Z) / 2
 	for _, entry in players do
 		if
 			flat(entry.root.Position - here).Magnitude <= reach
@@ -326,11 +419,13 @@ local function think()
 	end
 	if bumped then
 		Remotes.AbilityFx:FireAllClients("Sound", "Quack", here)
+		restUntil = now + s.RestAfterAttack
 	end
 
 	-- QUACK! A shockwave that throws everyone nearby back
 	if now - lastQuack >= s.QuackEvery and nearest and nearestDistance <= s.QuackRadius then
 		lastQuack = now
+		restUntil = now + s.RestAfterAttack
 		local ground = here - Vector3.new(0, s.BodySize.Y / 2, 0)
 		Remotes.AbilityFx:FireAllClients("Sound", "Quack", here)
 		Remotes.AbilityFx:FireAllClients("Shockwave", ground, s.QuackRadius)
@@ -350,6 +445,12 @@ function DuckBoss.start(combatService: any)
 	combat.onHit(function(target: Model, attacker: Player?)
 		if attacker and target == boss then
 			hitters[attacker] = true
+		end
+	end)
+	-- Every noodle hit on it does damage
+	combat.onStrike(function(target: Model, attacker: Player?, power: number)
+		if attacker and target == boss then
+			damage(power * settings().DamagePerPower)
 		end
 	end)
 	local elapsed = 0

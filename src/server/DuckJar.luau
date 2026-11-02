@@ -14,12 +14,15 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local DuckBoss = require(script.Parent.DuckBoss)
 local ModelLibrary = require(script.Parent.ModelLibrary)
 
-local JAR_HEIGHT = 12
-local JAR_WIDTH = 9
-local FILL_WIDTH = 8.2
-local BASE_HEIGHT = 1.2
+-- The jar is huge and stands on a little rock out in the pool, past the edge
+-- of the deck. None of it can be touched, so nobody can stand on it.
+local SIZE = Config.DuckJar.Scale
+local JAR_HEIGHT = 12 * SIZE
+local JAR_WIDTH = 9 * SIZE
+local FILL_WIDTH = 8.2 * SIZE
+local BASE_HEIGHT = 1.2 * SIZE
 local TOP_DUCKS = 5
-local TOP_DUCK_SCALE = 0.13 -- about 1.2 studs tall
+local TOP_DUCK_SCALE = 0.13 * SIZE -- each top duck is about 1.2 studs tall per SIZE
 local DUCK_YELLOW = Color3.fromRGB(255, 215, 40)
 
 local DuckJar = {}
@@ -72,7 +75,7 @@ local function smallDuck(): PVInstance
 	end
 	local ball = Instance.new("Part")
 	ball.Shape = Enum.PartType.Ball
-	ball.Size = Vector3.one * 1.2
+	ball.Size = Vector3.one * 1.2 * SIZE
 	ball.Color = DUCK_YELLOW
 	ball.Anchored = true
 	ball.CanCollide = false
@@ -81,17 +84,9 @@ local function smallDuck(): PVInstance
 	return ball
 end
 
-local function findFloor(spot: Vector3): number
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = {}
-	local result = workspace:Raycast(spot + Vector3.new(0, 80, 0), Vector3.new(0, -200, 0), params)
-	return if result then result.Position.Y else spot.Y
-end
-
 local function build()
 	local spot = Config.DuckJar.Spot
-	floorY = findFloor(spot)
+	floorY = spot.Y
 
 	jar = Instance.new("Model")
 	jar.Name = "DuckJar"
@@ -135,9 +130,9 @@ local function build()
 
 	-- Counter over the lid
 	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(260, 80)
-	billboard.StudsOffset = Vector3.new(0, 3.2, 0)
-	billboard.MaxDistance = 160
+	billboard.Size = UDim2.fromScale(JAR_WIDTH * 2.2, JAR_WIDTH * 0.7) -- in studs, so it grows with the jar
+	billboard.StudsOffset = Vector3.new(0, JAR_WIDTH * 0.45, 0)
+	billboard.MaxDistance = 1000
 	billboard.LightInfluence = 0
 	billboard.Parent = lid
 
@@ -164,6 +159,25 @@ local function build()
 	subStroke.Thickness = 2
 	subStroke.Parent = subLabel
 
+	-- A rock sticking out of the water to stand on
+	local rockHeight = floorY - (Config.WaterLevel - 15)
+	local rock = cylinder(
+		"Rock",
+		rockHeight,
+		JAR_WIDTH + 5 * SIZE,
+		Vector3.new(spot.X, floorY - rockHeight / 2, spot.Z),
+		Color3.fromRGB(120, 125, 135)
+	)
+	rock.Material = Enum.Material.Slate
+
+	-- Nothing on the jar can be touched or stood on
+	for _, item in jar:GetDescendants() do
+		if item:IsA("BasePart") then
+			item.CanCollide = false
+			item.CanTouch = false
+		end
+	end
+
 	jar.Parent = workspace
 end
 
@@ -181,14 +195,14 @@ local function refresh()
 	local top = bottom + height
 	for i, duck in topDucks do
 		local angle = (i / TOP_DUCKS) * math.pi * 2
-		local radius = if i == 1 then 0 else 2.4
+		local radius = if i == 1 then 0 else 2.4 * SIZE
 		local position = Vector3.new(spot.X + math.cos(angle) * radius, top, spot.Z + math.sin(angle) * radius)
 		local cframe = CFrame.new(position) * CFrame.Angles(0, angle * 1.7, 0)
 		local visible = count > 0
 		if duck:IsA("Model") then
 			duck:PivotTo(if visible then cframe else CFrame.new(position - Vector3.new(0, 50, 0)))
 		elseif duck:IsA("BasePart") then
-			duck.CFrame = cframe * CFrame.new(0, 0.6, 0)
+			duck.CFrame = cframe * CFrame.new(0, 0.6 * SIZE, 0)
 			duck.Transparency = if visible then 0 else 1
 		end
 	end
