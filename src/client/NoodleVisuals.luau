@@ -18,6 +18,7 @@ local Noodles = require(Shared.Noodles)
 local NoodleMesh = require(Shared.NoodleMesh)
 local Skins = require(Shared.Skins)
 local NoodleSim = require(script.Parent.NoodleSim)
+local Vanish = require(script.Parent.Vanish)
 
 type NoodleDef = Noodles.NoodleDef
 
@@ -32,6 +33,7 @@ export type Visual = {
 	scale: number,
 	usesMesh: boolean, -- built with the foam mesh (else rebuilt once it loads)
 	skin: string?, -- skin currently drawn (the Tool's "Skin" attribute)
+	transparency: number, -- 0 normal, 1 hidden (Invisible noodle, Vanish)
 }
 
 local player = Players.LocalPlayer
@@ -88,6 +90,28 @@ local function applySkin(visual: Visual, skinId: string?)
 	end
 end
 
+local INVISIBLE_SELF = 0.7 -- your own Invisible noodle, faint so you can aim
+
+-- Invisible noodles and vanished players: hidden from others, faint to yourself.
+local function transparencyOf(visual: Visual): number
+	local mine = visual.character == player.Character
+	local amount = Vanish.transparencyFor(visual.character)
+	if visual.def.Invisible then
+		amount = math.max(amount, if mine then INVISIBLE_SELF else 1)
+	end
+	return amount
+end
+
+local function applyTransparency(visual: Visual, amount: number)
+	visual.transparency = amount
+	for _, piece in visual.segments do
+		piece.part.Transparency = amount
+	end
+	for i, joint in visual.joints do
+		joint.Transparency = if i == #visual.joints then 1 else amount
+	end
+end
+
 local function skinOf(tool: Tool): string?
 	local skin = tool:GetAttribute("Skin")
 	return if type(skin) == "string" and Skins.ById[skin] then skin else nil
@@ -121,6 +145,7 @@ local function create(tool: Tool, handle: BasePart, character: Model, def: Noodl
 		scale = 1,
 		usesMesh = NoodleMesh.isMeshReady(),
 		skin = nil,
+		transparency = 0,
 	}
 	applySize(visual)
 	applySkin(visual, skinOf(tool))
@@ -201,6 +226,11 @@ local function step(dt: number)
 		if skinId ~= visual.skin then
 			applySkin(visual, skinId)
 		end
+		local transparency = transparencyOf(visual)
+		if transparency ~= visual.transparency then
+			applyTransparency(visual, transparency)
+		end
+
 		local skin = if skinId then Skins.ById[skinId] else nil
 		if skin and skin.Rainbow then
 			local now = os.clock()

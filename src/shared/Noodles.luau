@@ -25,6 +25,7 @@ export type NoodleDef = {
 	RagdollTime: number?, -- seconds the victim flops around (defaults to Config.RagdollTime)
 	StunTime: number?, -- seconds the victim can't move or swing
 	WalkSpeed: number?, -- your walk speed while holding it
+	Invisible: boolean?, -- other players can't see this noodle (you see it faintly)
 
 	Ability: string?, -- name of an active ability (E / ButtonY / mobile button)
 	AbilityCooldown: number?,
@@ -32,6 +33,7 @@ export type NoodleDef = {
 	Unlock: UnlockRequirement?, -- nil = free from the start
 }
 
+-- Unlocks go up with how strong the noodle is, and all come from Bonks.
 local Noodles: { [string]: NoodleDef } = {
 	Classic = {
 		Id = "Classic",
@@ -44,53 +46,6 @@ local Noodles: { [string]: NoodleDef } = {
 		Knockback = 55,
 		Cooldown = 0.5,
 		SoakGain = 12,
-	},
-
-	Spaghetti = {
-		Id = "Spaghetti",
-		DisplayName = "Spaghetti Noodle",
-		Description = "Super floppy. Whips around wildly and bonks fast.",
-		Color = Color3.fromRGB(255, 215, 130),
-		Length = 8,
-		Thickness = 0.55,
-		Stiffness = 90,
-		Knockback = 32,
-		Cooldown = 0.25,
-		SoakGain = 7,
-		Unlock = { Stat = "Bonks", Amount = 10 },
-	},
-
-	Jellyfish = {
-		Id = "Jellyfish",
-		DisplayName = "Jellyfish Noodle",
-		Description = "Weak push, but leaves them stunned and wide open.",
-		Color = Color3.fromRGB(190, 120, 255),
-		Length = 7,
-		Thickness = 0.8,
-		Stiffness = 200,
-		Knockback = 25,
-		Cooldown = 0.8,
-		SoakGain = 8,
-		RagdollTime = 0.4,
-		StunTime = 1.2,
-		Unlock = { Stat = "Splashes", Amount = 15 },
-	},
-
-	Spring = {
-		Id = "Spring",
-		DisplayName = "Spring Noodle",
-		Description = "Sends people sky-high. Press E to bounce yourself up.",
-		Color = Color3.fromRGB(255, 225, 60),
-		Length = 7,
-		Thickness = 0.8,
-		Stiffness = 320,
-		Knockback = 40,
-		Upward = 1.4,
-		Cooldown = 0.6,
-		SoakGain = 10,
-		Ability = "Boing",
-		AbilityCooldown = 6,
-		Unlock = { Stat = "Bonks", Amount = 50 },
 	},
 
 	Pogo = {
@@ -107,70 +62,41 @@ local Noodles: { [string]: NoodleDef } = {
 		SoakGain = 10,
 		Ability = "PogoSlam",
 		AbilityCooldown = 8,
+		Unlock = { Stat = "Bonks", Amount = 25 },
+	},
+
+	Invisible = {
+		Id = "Invisible",
+		DisplayName = "Invisible Noodle",
+		Description = "Nobody else can see it. Press E to vanish completely for a few seconds.",
+		Color = Color3.fromRGB(210, 220, 255),
+		Length = 7,
+		Thickness = 0.75,
+		Stiffness = 260,
+		Knockback = 55,
+		Cooldown = 0.5,
+		SoakGain = 12,
+		Invisible = true,
+		Ability = "Vanish",
+		AbilityCooldown = 12,
 		Unlock = { Stat = "Bonks", Amount = 75 },
 	},
 
-	Frozen = {
-		Id = "Frozen",
-		DisplayName = "Frozen Noodle",
-		Description = "Frozen stiff. Slow, but hits like a frozen fish.",
-		Color = Color3.fromRGB(170, 230, 255),
-		Length = 7,
-		Thickness = 0.9,
-		Stiffness = 600,
-		Knockback = 80,
-		Cooldown = 1.0,
-		SoakGain = 20,
-		WalkSpeed = 13,
-		Unlock = { Stat = "Bonks", Amount = 100 },
-	},
-
-	Inflatable = {
-		Id = "Inflatable",
-		DisplayName = "Inflatable Noodle",
-		Description = "Press E to blow it up to giant size for a few seconds.",
-		Color = Color3.fromRGB(80, 230, 200),
-		Length = 7,
+	Magnet = {
+		Id = "Magnet",
+		DisplayName = "Magnet Noodle",
+		Description = "Heavy metal. Press E to pull everyone nearby right to you.",
+		Color = Color3.fromRGB(225, 55, 55),
+		Length = 6.5,
 		Thickness = 1.0,
-		Stiffness = 220,
-		Knockback = 50,
-		Cooldown = 0.5,
-		SoakGain = 12,
-		Ability = "Inflate",
-		AbilityCooldown = 15,
-		Unlock = { Stat = "Bonks", Amount = 150 },
-	},
-
-	Bubble = {
-		Id = "Bubble",
-		DisplayName = "Bubble Noodle",
-		Description = "Press E to trap someone in a bubble and float them away.",
-		Color = Color3.fromRGB(140, 210, 255),
-		Length = 7,
-		Thickness = 0.8,
-		Stiffness = 240,
-		Knockback = 35,
-		Cooldown = 0.6,
-		SoakGain = 10,
-		Ability = "BubbleTrap",
+		Stiffness = 450,
+		Knockback = 62,
+		Cooldown = 0.7,
+		SoakGain = 14,
+		WalkSpeed = 15,
+		Ability = "Magnet",
 		AbilityCooldown = 10,
-		Unlock = { Stat = "Splashes", Amount = 40 },
-	},
-
-	Whip = {
-		Id = "Whip",
-		DisplayName = "Noodle Whip",
-		Description = "Longest reach. Press E to yank someone toward you.",
-		Color = Color3.fromRGB(90, 220, 120),
-		Length = 10,
-		Thickness = 0.6,
-		Stiffness = 150,
-		Knockback = 45,
-		Cooldown = 0.5,
-		SoakGain = 10,
-		Ability = "Lash",
-		AbilityCooldown = 7,
-		Unlock = { Stat = "Bonks", Amount = 200 },
+		Unlock = { Stat = "Bonks", Amount = 150 },
 	},
 
 	Kraken = {
@@ -187,7 +113,23 @@ local Noodles: { [string]: NoodleDef } = {
 		RagdollTime = 1.4,
 		Ability = "Tentacle",
 		AbilityCooldown = 10,
-		Unlock = { Stat = "Bonks", Amount = 300 },
+		Unlock = { Stat = "Bonks", Amount = 250 },
+	},
+
+	Tornado = {
+		Id = "Tornado",
+		DisplayName = "Tornado Noodle",
+		Description = "The strongest noodle. Press E to spin like a tornado and bonk everyone around you.",
+		Color = Color3.fromRGB(150, 215, 235),
+		Length = 8,
+		Thickness = 0.8,
+		Stiffness = 420,
+		Knockback = 66,
+		Cooldown = 0.45,
+		SoakGain = 14,
+		Ability = "Tornado",
+		AbilityCooldown = 14,
+		Unlock = { Stat = "Bonks", Amount = 400 },
 	},
 }
 

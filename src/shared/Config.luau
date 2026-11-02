@@ -81,10 +81,11 @@ local Config = {
 	RagdollTime = 1.2,
 	BodyRadius = 2, -- added to range checks so you can hit the edge of a body
 
-	-- Inflatable noodle ability
-	InflateScale = 2.2,
-	InflateTime = 6,
-	InflateKnockbackBonus = 1.4,
+	-- Noodle abilities
+	VanishTime = 4, -- Invisible noodle: seconds you stay invisible (hitting someone ends it)
+	MagnetRadius = 32, -- Magnet noodle: studs it pulls from
+	TornadoTime = 3, -- Tornado noodle: seconds you spin
+	TornadoSpinSpeed = 22, -- radians per second (about 3.5 turns a second)
 
 	-- Noodle tool
 	DefaultNoodle = "Classic",
@@ -134,11 +135,11 @@ local Config = {
 		Launched = { Ids = { 9119197896, 9119197913 }, Volume = 0.6 }, -- Slide Whistle
 		Boing = { Ids = { 9113854528 }, Volume = 0.8 }, -- Comic Boinks 6
 		Slam = { Ids = { 9113524242 }, Volume = 0.9 }, -- Body Impact 3
-		BubbleTrap = { Ids = { 9125409840 }, Volume = 0.8 }, -- Bubbles Small Underwater
 		BubblePop = { Ids = { 9113263454 }, Volume = 0.8 }, -- Balloon Pop 1
 		Tentacle = { Ids = { 9119990452 }, Volume = 0.9 }, -- Tentacle Slime 1
-		Lash = { Ids = { 9113612888 }, Volume = 0.8 }, -- Buggy Whip Quick Swish Crack
-		Inflate = { Ids = { 9120286427 }, Volume = 0.6 }, -- Tubular Whoosh Rise
+		Vanish = { Ids = { 9120286427 }, Volume = 0.6 }, -- Tubular Whoosh Rise
+		Magnet = { Ids = { 9113524242 }, Volume = 0.7 }, -- Body Impact 3
+		Tornado = { Ids = { 9120972444, 9120972457, 9120972323 }, Volume = 0.9 }, -- Wood Whoosh Quick Swings
 		Streak = { Ids = { 9116394545 }, Volume = 0.8 }, -- Magic Glows Chiming Hits
 		StreakEnded = { Ids = { 9120974378 }, Volume = 0.6 }, -- Wrestling Crowd 3
 		Unlock = { Ids = { 9126073001 }, Volume = 0.8 }, -- Synth Sparkle Bell Ding

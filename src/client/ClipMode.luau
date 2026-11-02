@@ -43,11 +43,10 @@ local REPEAT_GAP = 1.5 -- same moment within this many seconds is logged once
 
 local ABILITY_NAMES: { [string]: string } = {
 	Tentacle = "Kraken throw",
-	BubbleTrap = "Bubble trap",
 	Slam = "Pogo slam",
-	Inflate = "Noodle inflated",
-	Lash = "Whip lash",
-	Boing = "Spring bounce",
+	Magnet = "Magnet pull",
+	Tornado = "Tornado spin",
+	Vanish = "Vanished",
 }
 
 type Highlight = { time: number, stars: number, text: string }

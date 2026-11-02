@@ -3,7 +3,6 @@
 -- `Ability` name in Noodles.luau. CombatService has already checked the
 -- cooldown, stun and that the player is alive before calling these.
 
-local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
@@ -43,34 +42,6 @@ local function findTarget(ctx: AbilityContext, range: number, arcDeg: number): (
 		return nil, nil
 	end
 	return target, targetRoot
-end
-
--- Spring: bounce yourself high into the air to dodge or drop onto someone.
-Abilities.Boing = function(ctx)
-	sound("Boing", ctx.root.Position)
-	Remotes.Knockback:FireClient(ctx.player, {
-		velocity = ctx.root.CFrame.LookVector * 35 + Vector3.yAxis * 95,
-		ragdollTime = 0,
-	})
-end
-
--- Whip: lash the closest player in front of you and yank them toward you.
-Abilities.Lash = function(ctx)
-	local target, targetRoot = findTarget(ctx, 24, 60)
-	if not target or not targetRoot then
-		return
-	end
-	local pull = flat(ctx.root.Position - targetRoot.Position)
-	if pull.Magnitude < 1 then
-		return
-	end
-	sound("Lash", targetRoot.Position)
-	ctx.combat.applyKnockback(target, {
-		velocity = pull.Unit * math.min(pull.Magnitude * 4, 80) + Vector3.yAxis * 30,
-		ragdollTime = 0.6,
-	})
-	ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
-	Remotes.HitConfirm:FireAllClients(targetRoot.Position, ctx.def.Id, ctx.player)
 end
 
 -- Pogo: bounce up, then slam down. Everyone near where you land gets launched.
@@ -118,61 +89,6 @@ Abilities.PogoSlam = function(ctx)
 	end)
 end
 
--- Bubble: trap the closest person in front of you in a bubble that floats
--- away. Hitting them pops it early.
-local BUBBLE_TIME = 3
-
-Abilities.BubbleTrap = function(ctx)
-	local target, targetRoot = findTarget(ctx, 20, 70)
-	if not target or not targetRoot or target:GetAttribute("Bubbled") then
-		return
-	end
-
-	local look = flat(ctx.root.CFrame.LookVector)
-	local drift = (if look.Magnitude > 0.01 then look.Unit else Vector3.zero) * 7 + Vector3.yAxis * 6
-
-	local bubble = Instance.new("Part")
-	bubble.Name = "NoodleBubble"
-	bubble.Shape = Enum.PartType.Ball
-	bubble.Size = Vector3.one * 7
-	bubble.Material = Enum.Material.ForceField
-	bubble.Color = Color3.fromRGB(130, 210, 255)
-	bubble.CanCollide = false
-	bubble.CanQuery = false
-	bubble.CanTouch = false
-	bubble.Massless = true
-	bubble.CFrame = targetRoot.CFrame
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = targetRoot
-	weld.Part1 = bubble
-	weld.Parent = bubble
-	bubble.Parent = targetRoot
-	Debris:AddItem(bubble, BUBBLE_TIME)
-
-	sound("BubbleTrap", targetRoot.Position)
-	target:SetAttribute("Bubbled", true)
-	task.delay(BUBBLE_TIME, function()
-		-- Pop at the end, unless a hit already popped it
-		if targetRoot:FindFirstChild("NoodleBubble") then
-			sound("BubblePop", targetRoot.Position)
-		end
-	end)
-	task.delay(BUBBLE_TIME + 0.05, function()
-		if not targetRoot:FindFirstChild("NoodleBubble") then
-			target:SetAttribute("Bubbled", nil)
-		end
-	end)
-
-	ctx.combat.applyKnockback(target, {
-		velocity = drift,
-		ragdollTime = 0,
-		stunTime = BUBBLE_TIME,
-		float = { velocity = drift, time = BUBBLE_TIME },
-	})
-	ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
-	Remotes.HitConfirm:FireAllClients(targetRoot.Position, ctx.def.Id, ctx.player)
-end
-
 -- Kraken: a tentacle grabs the closest person in front of you and throws
 -- them over your head.
 Abilities.Tentacle = function(ctx)
@@ -190,17 +106,45 @@ Abilities.Tentacle = function(ctx)
 	ctx.combat.strike(ctx.player, target, targetRoot, overHead, 55, 1.35, ctx.def)
 end
 
--- Inflatable: your noodle grows huge for a few seconds. Bigger reach, harder
--- hits. The size is a Tool attribute, so every client draws it bigger.
-Abilities.Inflate = function(ctx)
-	local tool = ctx.tool
-	sound("Inflate", ctx.root.Position)
-	tool:SetAttribute("Scale", Config.InflateScale)
-	task.delay(Config.InflateTime, function()
-		if tool.Parent then
-			tool:SetAttribute("Scale", 1)
+local function serverNow(): number
+	return workspace:GetServerTimeNow()
+end
+
+-- Invisible: you vanish for a few seconds. Every client hides characters
+-- with a VanishedUntil time in the future (client/Vanish). Hitting someone
+-- brings you back early (CombatService.strike).
+Abilities.Vanish = function(ctx)
+	sound("Vanish", ctx.root.Position)
+	ctx.character:SetAttribute("VanishedUntil", serverNow() + Config.VanishTime)
+end
+
+-- Magnet: everyone nearby gets yanked toward you.
+Abilities.Magnet = function(ctx)
+	local center = ctx.root.Position
+	local radius = Config.MagnetRadius
+	sound("Magnet", center)
+	Remotes.AbilityFx:FireAllClients("Shockwave", center - Vector3.new(0, 2.5, 0), radius)
+	for _, target in HitQuery.findTargets(ctx.character, radius, 360, 12) do
+		local _, targetRoot = ctx.combat.getLiving(target)
+		if targetRoot and not ctx.combat.isProtected(target) then
+			local pull = flat(center - targetRoot.Position)
+			if pull.Magnitude > 3 then
+				ctx.combat.applyKnockback(target, {
+					velocity = pull.Unit * math.clamp(pull.Magnitude * 2.6, 30, 85) + Vector3.yAxis * 22,
+					ragdollTime = 0.5,
+				})
+				ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
+			end
 		end
-	end)
+	end
+end
+
+-- Tornado: you spin on the spot for a few seconds. Your client spins your
+-- character (client/CameraController), so your noodle whips around and hits
+-- everyone it touches like a normal, very fast swing.
+Abilities.Tornado = function(ctx)
+	sound("Tornado", ctx.root.Position)
+	ctx.character:SetAttribute("SpinningUntil", serverNow() + Config.TornadoTime)
 end
 
 return Abilities

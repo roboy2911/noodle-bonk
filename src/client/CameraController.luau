@@ -10,8 +10,11 @@
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 
 local player = Players.LocalPlayer
 
@@ -50,6 +53,12 @@ local function isStunned(character: Model): boolean
 	return type(stunnedUntil) == "number" and stunnedUntil > workspace:GetServerTimeNow()
 end
 
+-- Tornado noodle: spinning on the spot instead of facing the camera
+local function isSpinning(character: Model): boolean
+	local spinningUntil = character:GetAttribute("SpinningUntil")
+	return type(spinningUntil) == "number" and spinningUntil > workspace:GetServerTimeNow()
+end
+
 local function update(dt: number)
 	local camera = workspace.CurrentCamera
 	if not camera then
@@ -75,7 +84,9 @@ local function update(dt: number)
 			and state ~= Enum.HumanoidStateType.Physics
 			and state ~= Enum.HumanoidStateType.Dead
 			and not isStunned(character)
-		if canTurn then
+		if canTurn and isSpinning(character) then
+			root.CFrame *= CFrame.Angles(0, Config.TornadoSpinSpeed * dt, 0)
+		elseif canTurn then
 			local look = camera.CFrame.LookVector
 			local flatLook = Vector3.new(look.X, 0, look.Z)
 			if flatLook.Magnitude > 0.01 then

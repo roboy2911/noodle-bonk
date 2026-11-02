@@ -176,15 +176,15 @@ milestones, ended streaks and admin announcements for everyone.
 | Noodle | Unlock | Ability (E) |
 |---|---|---|
 | Classic | Free | none |
-| Spaghetti | Bonk 10 | none (super floppy, fast re-hits) |
-| Jellyfish | Fall in 15 times | none (stuns on hit) |
-| Spring | Bonk 50 | Boing: bounce yourself up |
-| Pogo | Bonk 75 | PogoSlam: bounce up, shockwave on landing |
-| Frozen | Bonk 100 | none (stiff and heavy) |
-| Inflatable | Bonk 150 | Inflate: giant noodle for 6 s |
-| Bubble | Fall in 40 times | BubbleTrap: float someone away in a bubble |
-| Whip | Bonk 200 | Lash: yank someone toward you |
-| Kraken | Bonk 300 | Tentacle: grab and throw someone over your head |
+| Pogo | Bonk 25 | PogoSlam: bounce up, shockwave on landing |
+| Invisible | Bonk 75 | Vanish: turn invisible for 4 s (hitting someone ends it). Other players can never see the noodle itself |
+| Magnet | Bonk 150 | Magnet: pull everyone within 32 studs toward you |
+| Kraken | Bonk 250 | Tentacle: grab and throw someone over your head |
+| Tornado | Bonk 400 | Tornado: spin for 3 s, hitting everyone your noodle touches |
+
+Every noodle is unlocked with Bonks, and the stronger it is, the more it
+costs. Ability timings are in `Config.luau` (`VanishTime`, `MagnetRadius`,
+`TornadoTime`, `TornadoSpinSpeed`).
 
 **Solo dummy:** when you're the only player in a server, one dummy called
 Noodle Bot spawns and fights you. It's removed as soon as a second player
@@ -272,9 +272,8 @@ one from client code with `Effects.playSound("Name", position?)`.
 | Hit + HitBoink | a noodle lands a hit (wet foam thwack + cartoon boink) |
 | Splash | someone falls in the pool |
 | Launched | you get bonked (slide whistle) |
-| Boing / Slam | Spring and Pogo bounce, Pogo landing |
-| BubbleTrap / BubblePop | Bubble ability starts / pops |
-| Tentacle / Lash / Inflate | Kraken, Whip and Inflatable abilities |
+| Boing / Slam | Pogo bounce and landing |
+| Tentacle / Vanish / Magnet / Tornado | Kraken, Invisible, Magnet and Tornado abilities (Vanish, Magnet and Tornado reuse other library sounds for now) |
 | Streak / StreakEnded | you hit a streak tier / end someone's streak |
 | Unlock | you unlock a noodle |
 | Click | menu and panel buttons |

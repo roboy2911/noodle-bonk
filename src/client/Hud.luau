@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local NoodleController = require(script.Parent.NoodleController)
+local Vanish = require(script.Parent.Vanish)
 
 local READY_COLOR = Color3.fromRGB(90, 230, 130)
 local CHARGING_COLOR = Color3.fromRGB(110, 140, 190)
@@ -150,7 +151,8 @@ local function updateSoakTags()
 	for _, character in characters do
 		local soak = character:GetAttribute("Soak")
 		local head = character:FindFirstChild("Head")
-		if type(soak) == "number" and soak >= 1 and head and head:IsA("BasePart") then
+		local vanished = character ~= player.Character and Vanish.isVanished(character)
+		if type(soak) == "number" and soak >= 1 and head and head:IsA("BasePart") and not vanished then
 			seen[character] = true
 			local tag = soakTags[character]
 			if not tag then

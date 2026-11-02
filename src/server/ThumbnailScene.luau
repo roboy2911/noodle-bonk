@@ -615,11 +615,11 @@ function ThumbnailScene.build()
 		local headB = fighterB:FindFirstChild("Head")
 		if gripA and headB and headB:IsA("BasePart") then
 			-- A's yellow noodle bonks B on the head
-			noodleToward(props, gripA.Position, headB.Position + Vector3.new(0, 0.6, 0), Noodles.Spring.Color, 0.9, 6, -3)
+			noodleToward(props, gripA.Position, headB.Position + Vector3.new(0, 0.6, 0), Noodles.Pogo.Color, 0.9, 6, -3)
 		end
 		local gripB = gripOf(fighterB)
 		if gripB then
-			buildNoodle(props, gripB.Position, gripB.LookVector, Noodles.Whip.Color, 9, 0.75, -7, 6)
+			buildNoodle(props, gripB.Position, gripB.LookVector, Noodles.Magnet.Color, 9, 0.75, -7, 6)
 		end
 	end
 

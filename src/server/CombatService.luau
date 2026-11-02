@@ -100,7 +100,7 @@ function CombatService.getEquipped(character: Model): (NoodleDef?, Tool?)
 	return nil, nil
 end
 
--- Size multiplier from the Inflate ability.
+-- Size multiplier for the noodle (a Tool "Scale" attribute; 1 = normal).
 function CombatService.getScale(tool: Tool): number
 	local scale = tool:GetAttribute("Scale")
 	return if type(scale) == "number" then scale else 1
@@ -237,6 +237,10 @@ function CombatService.strike(
 )
 	if target:GetAttribute("Bubbled") then
 		CombatService.popBubble(target)
+	end
+	-- Hitting someone ends your Vanish (Invisible noodle)
+	if attacker and attacker.Character then
+		attacker.Character:SetAttribute("VanishedUntil", nil)
 	end
 
 	local soak = CombatService.addSoak(target, def.SoakGain)
@@ -389,8 +393,7 @@ local function onNoodleHit(player: Player, target: unknown, hitPos: unknown, dir
 		launchDirection += away.Unit * 0.35
 	end
 
-	local bonus = if scale > 1 then Config.InflateKnockbackBonus else 1
-	local power = def.Knockback * powerScale(effectiveSpeed) * bonus
+	local power = def.Knockback * powerScale(effectiveSpeed)
 	CombatService.strike(player, victim, targetRoot, launchDirection, power, def.Upward or Config.BaseUpward, def)
 end
 
