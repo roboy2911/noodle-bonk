@@ -11,8 +11,27 @@ export type Stats = { [string]: number }
 local Unlocks = {}
 
 -- Every saved stat. Add a name here to start tracking a new one.
--- "Tutorial" isn't an unlock: it's 1 once the player has finished (or skipped) the tutorial.
-Unlocks.STATS = { "Bonks", "Splashes", "PoolParties", "FriendSessions", "Lucky", "DuckBosses", "Tutorial" }
+-- "Tutorial" (1 once done or skipped) and "LastDay" (for DaysPlayed) aren't unlocks.
+Unlocks.STATS = {
+	"Bonks",
+	"Splashes",
+	"PoolParties",
+	"FriendSessions",
+	"Lucky",
+	"DuckBosses",
+	"AbilitiesUsed",
+	"Hits",
+	"TimesHit",
+	"LongestSurvival", -- seconds
+	"BestStreak",
+	"StreaksEnded",
+	"PlayTime", -- seconds
+	"DuckHits",
+	"DaysPlayed",
+	"MaxSoaks",
+	"Tutorial",
+	"LastDay",
+}
 
 local DESCRIPTIONS: { [string]: (number) -> string } = {
 	Bonks = function(amount)
@@ -21,8 +40,8 @@ local DESCRIPTIONS: { [string]: (number) -> string } = {
 	Splashes = function(amount)
 		return `Fall in the pool {amount} times`
 	end,
-	PoolParties = function()
-		return "Be in a server during a Pool Party"
+	PoolParties = function(amount)
+		return if amount > 1 then `Be in {amount} Pool Parties` else "Be in a server during a Pool Party"
 	end,
 	FriendSessions = function()
 		return "Play in a server with a friend"
@@ -32,6 +51,36 @@ local DESCRIPTIONS: { [string]: (number) -> string } = {
 	end,
 	DuckBosses = function()
 		return "Help defeat the Giant Rubber Duck"
+	end,
+	AbilitiesUsed = function(amount)
+		return `Use abilities {amount} times`
+	end,
+	Hits = function(amount)
+		return `Land {amount} hits`
+	end,
+	TimesHit = function(amount)
+		return `Get hit {amount} times`
+	end,
+	LongestSurvival = function(amount)
+		return `Survive {amount // 60} minutes without falling in`
+	end,
+	BestStreak = function(amount)
+		return `Reach a {amount} bonk streak`
+	end,
+	StreaksEnded = function(amount)
+		return `End {amount} people's streaks`
+	end,
+	PlayTime = function(amount)
+		return `Play for {amount // 3600} hours`
+	end,
+	DuckHits = function(amount)
+		return `Hit the Giant Duck {amount} times`
+	end,
+	DaysPlayed = function(amount)
+		return `Play on {amount} different days`
+	end,
+	MaxSoaks = function(amount)
+		return `Soak someone to 200%, {amount} times`
 	end,
 }
 
@@ -86,6 +135,11 @@ function Unlocks.describe(def: NoodleDef, stats: Stats): string
 		return text -- a one-time thing, no progress to show
 	end
 	local have = math.min(stats[requirement.Stat] or 0, requirement.Amount)
+	if requirement.Stat == "PlayTime" then
+		return `{text} ({have // 60}/{requirement.Amount // 60} min)`
+	elseif requirement.Stat == "LongestSurvival" then
+		return `{text} (best: {have // 60}:{string.format("%02d", have % 60)})`
+	end
 	return `{text} ({have}/{requirement.Amount})`
 end
 

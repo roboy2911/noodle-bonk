@@ -115,9 +115,13 @@ function Streaks.onBonk(attacker: Player?, victim: Player?, counts: boolean): St
 
 	local streak = (streaks[attacker] or 0) + 1
 	setStreak(attacker, streak)
+	if streak > DataService.getStat(attacker, "BestStreak") then
+		DataService.setStat(attacker, "BestStreak", streak) -- unlocks the Fire noodle
+	end
 
 	local bonus: number? = nil
 	if ended then
+		DataService.increment(attacker, "StreaksEnded", 1) -- unlocks the Mirror noodle
 		bonus = Config.StreakEndBonus
 		DataService.increment(attacker, "Bonks", Config.StreakEndBonus)
 	end

@@ -11,9 +11,12 @@ local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
 local HitQuery = require(Shared.HitQuery)
 local Friends = require(script.Parent.Friends)
+local NoodleEffects = require(script.Parent.NoodleEffects)
 
 local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 export type AbilityContext = {
 	player: Player,
@@ -49,7 +52,7 @@ local function findTarget(ctx: AbilityContext, range: number, arcDeg: number): (
 end
 
 -- Pogo: bounce up, then slam down. Everyone near where you land gets launched.
-local POGO_RADIUS = 14
+local POGO_RADIUS = 18
 local POGO_POWER = 65
 
 Abilities.PogoSlam = function(ctx)
@@ -96,7 +99,7 @@ end
 -- Kraken: a tentacle grabs the closest person in front of you and throws
 -- them over your head.
 Abilities.Tentacle = function(ctx)
-	local target, targetRoot = findTarget(ctx, 18, 70)
+	local target, targetRoot = findTarget(ctx, Config.AbilityRange, 70)
 	if not target or not targetRoot then
 		return
 	end
@@ -238,6 +241,570 @@ Abilities.Stampede = function(ctx)
 						ctx.combat.strike(ctx.player, target, targetRoot, direction, Config.StampedePower, 0.7, ctx.def)
 					end
 				end
+			end
+		end
+	end)
+end
+
+-- ==========================================================================================
+-- Gimmick noodles
+-- ==========================================================================================
+
+-- A living, unprotected target's root, or nil.
+local function rootOf(ctx: AbilityContext, target: Model): BasePart?
+	local _, targetRoot = ctx.combat.getLiving(target)
+	if not targetRoot or ctx.combat.isProtected(target) then
+		return nil
+	end
+	return targetRoot
+end
+
+-- Where the floor is under `position` (ignoring characters), or nil over the water.
+local function floorBelow(position: Vector3, ignore: { Instance }): Vector3?
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	local result = workspace:Raycast(position + Vector3.new(0, 4, 0), Vector3.new(0, -20, 0), params)
+	return if result then result.Position else nil
+end
+
+local function effectPart(name: string, size: Vector3, color: Color3, shape: Enum.PartType?): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.Color = color
+	part.Material = Enum.Material.SmoothPlastic
+	part.Shape = shape or Enum.PartType.Block
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	return part
+end
+
+-- Moves `part` along `pathAt(seconds)` (nil = done) and hits anyone it passes
+-- within `radius`. `onHit` returns true to stop the flight.
+local function fly(
+	ctx: AbilityContext,
+	part: BasePart,
+	radius: number,
+	pathAt: (number) -> Vector3?,
+	onHit: (Model, BasePart, Vector3) -> boolean,
+	done: (() -> ())?
+)
+	part.Parent = workspace
+	local hit: { [Model]: boolean } = {}
+	local started = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.Heartbeat:Connect(function()
+		local elapsed = os.clock() - started
+		local position = pathAt(elapsed)
+		if not position or not ctx.character.Parent then
+			connection:Disconnect()
+			part:Destroy()
+			if done then
+				done()
+			end
+			return
+		end
+		part.CFrame = CFrame.new(position) * CFrame.Angles(elapsed * 9, elapsed * 13, 0)
+		for _, target in everyone(ctx.character) do
+			if not hit[target] then
+				local targetRoot = rootOf(ctx, target)
+				if targetRoot and (targetRoot.Position - position).Magnitude <= radius + Config.BodyRadius then
+					hit[target] = true
+					if onHit(target, targetRoot, position) then
+						connection:Disconnect()
+						part:Destroy()
+						if done then
+							done()
+						end
+						return
+					end
+				end
+			end
+		end
+	end)
+end
+
+local function aim(ctx: AbilityContext): Vector3
+	local look = flat(ctx.root.CFrame.LookVector)
+	return if look.Magnitude > 0.01 then look.Unit else Vector3.new(0, 0, -1)
+end
+
+-- Baguette: break off a chunk of bread and throw it.
+Abilities.ThrowBread = function(ctx)
+	local direction = aim(ctx)
+	local origin = ctx.root.Position + Vector3.new(0, 1.5, 0) + direction * 2
+	local flight = Config.ProjectileRange / Config.ProjectileSpeed
+	sound("Throw", origin)
+	local bread = effectPart("BreadChunk", Vector3.new(1.3, 1.3, 2.6), Color3.fromRGB(215, 160, 80))
+	fly(ctx, bread, 2, function(t)
+		if t > flight then
+			return nil
+		end
+		return origin + direction * Config.ProjectileSpeed * t + Vector3.new(0, 6 * t - 12 * t * t, 0)
+	end, function(target, targetRoot)
+		ctx.combat.strike(ctx.player, target, targetRoot, direction, 60, 0.5, ctx.def)
+		return true
+	end)
+end
+
+-- Water Cannon: a fast blast of water that soaks and knocks back from far away.
+Abilities.WaterCannon = function(ctx)
+	local direction = aim(ctx)
+	local origin = ctx.root.Position + Vector3.new(0, 1.5, 0) + direction * 3
+	local flight = Config.CannonRange / Config.CannonSpeed
+	sound("Splash", origin)
+	local blast = effectPart("WaterBlast", Vector3.one * 3, Color3.fromRGB(120, 210, 255), Enum.PartType.Ball)
+	blast.Material = Enum.Material.Glass
+	blast.Transparency = 0.25
+	fly(ctx, blast, 2.5, function(t)
+		return if t <= flight then origin + direction * Config.CannonSpeed * t else nil
+	end, function(target, targetRoot, position)
+		ctx.combat.addSoak(target, 20)
+		ctx.combat.strike(ctx.player, target, targetRoot, direction, 70, 0.35, ctx.def)
+		Remotes.AbilityFx:FireAllClients("Splash", position)
+		return true
+	end)
+end
+
+-- Boomerang: throw the noodle itself; it curves out and comes back.
+local BOOMERANG_TIME = 1.6
+
+Abilities.Boomerang = function(ctx)
+	local tool = ctx.tool
+	if tool:GetAttribute("Thrown") then
+		return
+	end
+	tool:SetAttribute("Thrown", true) -- every client hides the noodle; swings can't hit
+	local direction = aim(ctx)
+	local side = direction:Cross(Vector3.yAxis)
+	local origin = ctx.root.Position + Vector3.new(0, 1.5, 0)
+	local reach = Config.BoomerangRange
+	sound("Throw", origin)
+	local spinner =
+		effectPart("Boomerang", Vector3.new(ctx.def.Length, ctx.def.Thickness, ctx.def.Thickness), ctx.def.Color)
+	spinner.Shape = Enum.PartType.Cylinder
+	fly(ctx, spinner, 3, function(t)
+		local s = t / BOOMERANG_TIME
+		if s >= 1 then
+			return nil
+		end
+		-- Out and back in a curve, finishing wherever the thrower is now
+		local out = origin + direction * reach * math.sin(math.pi * s) + side * reach * 0.35 * math.sin(2 * math.pi * s)
+		local home = ctx.root.Position + Vector3.new(0, 1.5, 0)
+		return out + (home - origin) * s
+	end, function(target, targetRoot, position)
+		ctx.combat.strike(ctx.player, target, targetRoot, flat(targetRoot.Position - position), 55, 0.5, ctx.def)
+		return false -- keeps flying through everyone
+	end, function()
+		if tool.Parent then
+			tool:SetAttribute("Thrown", nil)
+		end
+	end)
+end
+
+-- Rocket: blast yourself forward and bonk whoever you crash into.
+Abilities.Rocket = function(ctx)
+	local direction = aim(ctx)
+	sound("Throw", ctx.root.Position)
+	Remotes.Knockback:FireClient(ctx.player, {
+		velocity = direction * 110 + Vector3.yAxis * 12,
+		ragdollTime = 0,
+	})
+	local fire = Instance.new("Fire")
+	fire.Size = 5
+	fire.Heat = 0
+	fire.Parent = ctx.root
+	Debris:AddItem(fire, 0.8)
+	task.spawn(function()
+		local hit: { [Model]: boolean } = {}
+		local endTime = os.clock() + 0.7
+		while os.clock() < endTime and ctx.root.Parent do
+			for _, target in everyone(ctx.character) do
+				local targetRoot = not hit[target] and rootOf(ctx, target)
+				if targetRoot and (targetRoot.Position - ctx.root.Position).Magnitude <= 6 then
+					hit[target] = true
+					ctx.combat.strike(ctx.player, target, targetRoot, direction, 72, 0.5, ctx.def)
+				end
+			end
+			RunService.Heartbeat:Wait()
+		end
+	end)
+end
+
+-- Lightning: zap the nearest player in front; the bolt chains to 2 more.
+Abilities.Lightning = function(ctx)
+	local first, firstRoot = findTarget(ctx, Config.AbilityRange + 6, 100)
+	if not first or not firstRoot then
+		return
+	end
+	local points: { Vector3 } = { ctx.root.Position + Vector3.new(0, 1.5, 0) }
+	local hit: { [Model]: boolean } = {}
+	local current, currentRoot = first, firstRoot
+	for _ = 1, 3 do
+		hit[current] = true
+		table.insert(points, currentRoot.Position)
+		ctx.combat.strike(
+			ctx.player,
+			current,
+			currentRoot,
+			flat(currentRoot.Position - ctx.root.Position),
+			55,
+			0.7,
+			ctx.def
+		)
+		-- next: the closest other target near this one
+		local nextTarget, nextRoot, best = nil, nil, 22
+		for _, other in everyone(ctx.character) do
+			local otherRoot = not hit[other] and rootOf(ctx, other)
+			if otherRoot then
+				local distance = (otherRoot.Position - currentRoot.Position).Magnitude
+				if distance < best then
+					nextTarget, nextRoot, best = other, otherRoot, distance
+				end
+			end
+		end
+		if not nextTarget or not nextRoot then
+			break
+		end
+		current, currentRoot = nextTarget, nextRoot
+	end
+	sound("Zap", firstRoot.Position)
+	Remotes.AbilityFx:FireAllClients("Zap", points)
+end
+
+-- Swap: trade places with whoever you're aiming at.
+Abilities.Swap = function(ctx)
+	local target, targetRoot = findTarget(ctx, Config.AbilityRange + 8, 50)
+	if not target or not targetRoot then
+		return
+	end
+	local mine, theirs = ctx.root.CFrame, targetRoot.CFrame
+	ctx.character:PivotTo(theirs)
+	target:PivotTo(mine)
+	ctx.combat.recordHit(target, ctx.player, ctx.def.Id) -- your bonk if they fall now
+	sound("Poof", mine.Position)
+	Remotes.AbilityFx:FireAllClients("Poof", mine.Position)
+	Remotes.AbilityFx:FireAllClients("Poof", theirs.Position)
+end
+
+-- Clone: send out a decoy of yourself that explodes into a bonk.
+Abilities.Clone = function(ctx)
+	local character = ctx.character
+	character.Archivable = true
+	local ok, decoy = pcall(function()
+		return character:Clone()
+	end)
+	character.Archivable = false
+	if not ok or not decoy then
+		return
+	end
+	for _, item in decoy:GetDescendants() do
+		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Tool") or item:IsA("ForceField") then
+			item:Destroy()
+		elseif item:IsA("BasePart") then
+			item.Anchored = true
+			item.CanCollide = false
+			item.CanTouch = false
+		end
+	end
+	decoy.Name = character.Name
+	local direction = aim(ctx)
+	local start = ctx.root.CFrame
+	decoy:PivotTo(start)
+	decoy.Parent = workspace
+	sound("Poof", start.Position)
+	Remotes.AbilityFx:FireAllClients("Poof", start.Position)
+
+	local exploded = false
+	local function explode()
+		if exploded then
+			return
+		end
+		exploded = true
+		NoodleEffects.decoys[decoy] = nil
+		local center = decoy:GetPivot().Position
+		decoy:Destroy()
+		sound("Poof", center)
+		Remotes.AbilityFx:FireAllClients("Poof", center)
+		Remotes.AbilityFx:FireAllClients("Shockwave", center - Vector3.new(0, 2.5, 0), 12)
+		for _, target in everyone(character) do
+			local targetRoot = rootOf(ctx, target)
+			if targetRoot and (targetRoot.Position - center).Magnitude <= 12 then
+				ctx.combat.strike(ctx.player, target, targetRoot, flat(targetRoot.Position - center), 70, 0.7, ctx.def)
+			end
+		end
+	end
+	NoodleEffects.decoys[decoy] = explode
+
+	task.spawn(function()
+		local started = os.clock()
+		while not exploded and os.clock() - started < Config.CloneTime do
+			local elapsed = os.clock() - started
+			decoy:PivotTo(start + direction * math.min(elapsed, 2.5) * 14)
+			local here = decoy:GetPivot().Position
+			for _, target in everyone(character) do
+				local targetRoot = target ~= decoy and rootOf(ctx, target)
+				if targetRoot and (targetRoot.Position - here).Magnitude <= 6 then
+					explode()
+					return
+				end
+			end
+			RunService.Heartbeat:Wait()
+		end
+		explode()
+	end)
+end
+
+-- Gravity: everyone nearby floats up, then crashes down.
+Abilities.Gravity = function(ctx)
+	local center = ctx.root.Position
+	sound("Boing", center)
+	Remotes.AbilityFx:FireAllClients("Shockwave", center - Vector3.new(0, 2.5, 0), Config.GravityRadius)
+	for _, target in HitQuery.findTargets(ctx.character, Config.GravityRadius, 360, 12) do
+		if rootOf(ctx, target) then
+			ctx.combat.applyKnockback(target, {
+				velocity = Vector3.yAxis * 28,
+				ragdollTime = 0,
+				float = { velocity = Vector3.yAxis * 28, time = 1.1 },
+			})
+			ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
+			task.delay(1.1, function()
+				if target.Parent then
+					local angle = math.random() * math.pi * 2
+					ctx.combat.applyKnockback(target, {
+						velocity = Vector3.new(math.cos(angle) * 18, -95, math.sin(angle) * 18),
+						ragdollTime = 1.0,
+						shake = 0.5,
+					})
+				end
+			end)
+		end
+	end
+end
+
+-- Knight: a short parry window. Get hit during it and the attacker flies instead.
+Abilities.Parry = function(ctx)
+	ctx.character:SetAttribute("ParryUntil", serverNow() + Config.ParryWindow)
+	NoodleEffects.glow(ctx.character, "ParryFlash", Color3.fromRGB(255, 255, 255), Config.ParryWindow, 0.6)
+	sound("Throw", ctx.root.Position)
+end
+
+-- Mirror: a shield that bounces the next hit back.
+Abilities.Mirror = function(ctx)
+	ctx.character:SetAttribute("MirrorUntil", serverNow() + Config.MirrorTime)
+	NoodleEffects.glow(ctx.character, "MirrorShield", Color3.fromRGB(200, 230, 255), Config.MirrorTime, 0.35)
+	sound("Zap", ctx.root.Position)
+end
+
+-- Anchor: can't be moved at all for a few seconds.
+Abilities.DropAnchor = function(ctx)
+	ctx.character:SetAttribute("AnchoredUntil", serverNow() + Config.AnchorTime)
+	NoodleEffects.glow(ctx.character, "AnchorGlow", Color3.fromRGB(70, 75, 90), Config.AnchorTime, 0.45)
+	sound("Slam", ctx.root.Position)
+	NoodleEffects.pop(ctx.root.Position + Vector3.new(0, 4, 0), "ANCHORED!", Color3.fromRGB(150, 160, 180))
+end
+
+-- Banana: drop a peel. Anyone who steps on it slips (3 peels each at most).
+local peels: { [Player]: { BasePart } } = {}
+
+Abilities.BananaPeel = function(ctx)
+	local direction = aim(ctx)
+	local floor = floorBelow(ctx.root.Position + direction * 3, { ctx.character })
+	if not floor then
+		return
+	end
+	local list = peels[ctx.player] or {}
+	peels[ctx.player] = list
+	while #list >= 3 do
+		local oldest = table.remove(list, 1)
+		if oldest then
+			oldest:Destroy()
+		end
+	end
+	local peel = effectPart("BananaPeel", Vector3.new(2.2, 0.3, 1.3), Color3.fromRGB(255, 225, 50))
+	peel.CFrame = CFrame.new(floor + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, math.random() * math.pi * 2, 0)
+	peel.Parent = workspace
+	table.insert(list, peel)
+	Debris:AddItem(peel, Config.BananaTime)
+	sound("Throw", floor)
+
+	local placed = os.clock()
+	task.spawn(function()
+		while peel.Parent do
+			for _, target in everyone(nil :: any) do
+				local isOwner = target == ctx.character
+				local targetRoot = (not isOwner or os.clock() - placed > 1.5) and rootOf(ctx, target)
+				if targetRoot then
+					local offset = targetRoot.Position - peel.Position
+					if flat(offset).Magnitude <= 2.4 and offset.Y < 5 then
+						local slide = flat(targetRoot.AssemblyLinearVelocity)
+						local push = if slide.Magnitude > 1 then slide.Unit else flat(targetRoot.CFrame.LookVector)
+						ctx.combat.applyKnockback(target, {
+							velocity = push * 30 + Vector3.yAxis * 32,
+							ragdollTime = 1.4,
+							shake = 0.4,
+						})
+						if not isOwner then
+							ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
+						end
+						sound("Slip", peel.Position)
+						NoodleEffects.pop(peel.Position + Vector3.new(0, 3, 0), "SLIP!", Color3.fromRGB(255, 225, 50))
+						peel:Destroy()
+						return
+					end
+				end
+			end
+			task.wait(0.1)
+		end
+	end)
+end
+
+-- Rubber Chicken: SQUAWK! Stuns everyone nearby for a second.
+Abilities.Squawk = function(ctx)
+	local center = ctx.root.Position
+	sound("Squawk", center)
+	Remotes.AbilityFx:FireAllClients("Shockwave", center - Vector3.new(0, 2.5, 0), Config.SquawkRadius)
+	NoodleEffects.pop(center + Vector3.new(0, 4, 0), "SQUAWK!", Color3.fromRGB(255, 250, 235))
+	for _, target in HitQuery.findTargets(ctx.character, Config.SquawkRadius, 360, 12) do
+		local targetRoot = rootOf(ctx, target)
+		if targetRoot then
+			local away = flat(targetRoot.Position - center)
+			ctx.combat.applyKnockback(target, {
+				velocity = (if away.Magnitude > 0.01 then away.Unit else Vector3.zero) * 12 + Vector3.yAxis * 8,
+				ragdollTime = 0,
+				stunTime = 1.0,
+			})
+			ctx.combat.recordHit(target, ctx.player, ctx.def.Id)
+		end
+	end
+end
+
+-- Trampoline: put down a pad that bounces anyone who lands on it sky-high.
+Abilities.Trampoline = function(ctx)
+	local direction = aim(ctx)
+	local floor = floorBelow(ctx.root.Position + direction * 6, { ctx.character })
+	if not floor then
+		return
+	end
+	local pad = effectPart("Trampoline", Vector3.new(0.6, 8, 8), Color3.fromRGB(60, 90, 255), Enum.PartType.Cylinder)
+	pad.CFrame = CFrame.new(floor + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	pad.CanCollide = true
+	pad.Parent = workspace
+	Debris:AddItem(pad, Config.TrampolineTime)
+	sound("Boing", floor)
+
+	local lastBounce: { [Model]: number } = {}
+	task.spawn(function()
+		while pad.Parent do
+			for _, target in everyone(nil :: any) do
+				local _, targetRoot = ctx.combat.getLiving(target)
+				if targetRoot then
+					local offset = targetRoot.Position - pad.Position
+					local now = os.clock()
+					if
+						flat(offset).Magnitude <= 4.2
+						and offset.Y > 0.5
+						and offset.Y < 6
+						and targetRoot.AssemblyLinearVelocity.Y <= 5
+						and now - (lastBounce[target] or 0) > 0.7
+					then
+						lastBounce[target] = now
+						ctx.combat.applyKnockback(target, {
+							velocity = flat(targetRoot.AssemblyLinearVelocity) * 0.5
+								+ Vector3.yAxis * Config.TrampolineBounce,
+							ragdollTime = 0,
+						})
+						sound("Boing", pad.Position)
+					end
+				end
+			end
+			task.wait(0.1)
+		end
+	end)
+end
+
+-- Grapple: shoot your noodle and zip to where it lands. Falling? It aims for the deck.
+Abilities.Grapple = function(ctx)
+	local direction = aim(ctx)
+	local origin = ctx.root.Position + Vector3.new(0, 1.5, 0)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { ctx.character }
+	local result = workspace:Raycast(origin, (direction + Vector3.new(0, 0.15, 0)).Unit * 90, params)
+	local point: Vector3? = nil
+	if result then
+		local hitModel = HitQuery.getCharacter(result.Instance)
+		local hitRoot = hitModel and hitModel:FindFirstChild("HumanoidRootPart")
+		point = if hitRoot and hitRoot:IsA("BasePart") then hitRoot.Position else result.Position
+	elseif ctx.root.Position.Y < -2 then
+		-- Falling off: zip back to the nearest bit of the deck edge
+		local out = flat(ctx.root.Position)
+		if out.Magnitude > 1 then
+			point = out.Unit * (Config.ArenaDiameter / 2 - 6) + Vector3.new(0, 3, 0)
+		end
+	end
+	if not point then
+		return
+	end
+	local delta = point - ctx.root.Position
+	sound("Throw", origin)
+	Remotes.AbilityFx:FireAllClients("Rope", ctx.root, point)
+	Remotes.Knockback:FireClient(ctx.player, {
+		velocity = delta.Unit * math.clamp(delta.Magnitude * 2.2, 50, 150)
+			+ Vector3.yAxis * (15 + math.max(0, delta.Y) * 0.6),
+		ragdollTime = 0,
+	})
+end
+
+-- Pufferfish: puff up big and spiky; anyone touching you gets launched.
+Abilities.Puff = function(ctx)
+	local character = ctx.character
+	if character:GetAttribute("Puffed") then
+		return
+	end
+	character:SetAttribute("Puffed", true)
+	local grown = pcall(function()
+		character:ScaleTo(character:GetScale() * 1.6)
+	end)
+	NoodleEffects.glow(character, "PuffGlow", Color3.fromRGB(255, 200, 90), Config.PuffTime, 0.4)
+	sound("Boing", ctx.root.Position)
+	NoodleEffects.pop(ctx.root.Position + Vector3.new(0, 5, 0), "PUFF!", Color3.fromRGB(255, 200, 90))
+	local lastHit: { [Model]: number } = {}
+	task.spawn(function()
+		local endTime = os.clock() + Config.PuffTime
+		while os.clock() < endTime and character.Parent do
+			for _, target in everyone(character) do
+				local targetRoot = rootOf(ctx, target)
+				local now = os.clock()
+				if
+					targetRoot
+					and (targetRoot.Position - ctx.root.Position).Magnitude <= 6.5
+					and now - (lastHit[target] or 0) > 0.8
+				then
+					lastHit[target] = now
+					ctx.combat.strike(
+						ctx.player,
+						target,
+						targetRoot,
+						flat(targetRoot.Position - ctx.root.Position),
+						65,
+						0.6,
+						ctx.def
+					)
+				end
+			end
+			task.wait(0.1)
+		end
+		if character.Parent then
+			character:SetAttribute("Puffed", nil)
+			if grown then
+				pcall(function()
+					character:ScaleTo(character:GetScale() / 1.6)
+				end)
 			end
 		end
 	end)

@@ -302,15 +302,21 @@ local function buildPlayerPage(page: ScrollingFrame)
 
 	header(page, "Stats (saved)")
 	local statRow = row(page)
+	-- One button cycles through every stat; Set / Add use the one shown
+	local statIndex = 1
+	local statButton = makeButton(statRow, `Stat: {Unlocks.STATS[1]} ▸`, nil, 220)
+	statButton.Activated:Connect(function()
+		statIndex = statIndex % #Unlocks.STATS + 1
+		statButton.Text = `Stat: {Unlocks.STATS[statIndex]} ▸`
+	end)
 	local amountBox = makeBox(statRow, "Amount", 90)
-	for _, stat in Unlocks.STATS do
-		makeButton(statRow, `Set {stat}`, nil, 110).Activated:Connect(function()
-			send("SetStat", { stat = stat, value = amountBox.Text })
-		end)
-		makeButton(statRow, `Add {stat}`, nil, 110).Activated:Connect(function()
-			send("AddStat", { stat = stat, value = amountBox.Text })
-		end)
-	end
+	makeButton(statRow, "Set", nil, 70).Activated:Connect(function()
+		send("SetStat", { stat = Unlocks.STATS[statIndex], value = amountBox.Text })
+	end)
+	makeButton(statRow, "Add", nil, 70).Activated:Connect(function()
+		send("AddStat", { stat = Unlocks.STATS[statIndex], value = amountBox.Text })
+	end)
+	note(page, "Click the stat button to pick which stat. Times are in seconds (PlayTime, LongestSurvival).")
 	local resetRow = row(page)
 	confirmButton(resetRow, "Reset ALL data", function()
 		send("ResetData")

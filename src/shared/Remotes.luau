@@ -11,6 +11,9 @@ export type KnockbackInfo = {
 	stunTime: number?,
 	float: { velocity: Vector3, time: number }?, -- hold this velocity for a while (bubble)
 	shake: number?, -- camera shake strength
+	spin: Vector3?, -- spin the body this fast (Fish noodle)
+	follow: { target: BasePart, distance: number, time: number, fling: Vector3 }?, -- stuck to a noodle (Gum), then flung
+	panic: number?, -- run around out of control for this long (Fire noodle)
 }
 
 local FOLDER_NAME = "NoodleRemotes"

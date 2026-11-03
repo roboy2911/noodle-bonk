@@ -217,6 +217,40 @@ milestones, ended streaks and admin announcements for everyone.
 | Tornado | Bonk 400 | Tornado: spin for 3 s, hitting everyone your noodle touches |
 | **Duck** | Help defeat the Giant Rubber Duck | Stampede: a row of rubber ducks charges forward and bowls everyone over. The best noodle in the game |
 
+**Gimmick noodles** (24): each has its own trick. Abilities are on E; the
+rest are passive (they happen when you hit, or get hit).
+
+| Noodle | Unlock | Gimmick |
+|---|---|---|
+| Fish | Bonk 15 | hits spin your victim |
+| Baguette | Bonk 40 | E: throw a chunk of bread |
+| Boomerang | Bonk 120 | E: throw the noodle; it curves back, hitting everyone on the way |
+| Rocket | Bonk 175 | E: blast forward, bonking whoever you crash into |
+| Shrink Ray | Bonk 225 | hits shrink the victim (tiny players fly twice as far) |
+| Lightning | Bonk 325 | E: zap that chains to 2 more players |
+| Swap | Bonk 450 | E: swap places with who you're aiming at |
+| Clone | Bonk 550 | E: a decoy of you that explodes when someone gets close |
+| Gravity | Bonk 700 | E: everyone nearby floats up, then crashes down |
+| Knight | Bonk 900 | E: parry; a blocked hit launches the attacker |
+| Water Cannon | Bonk 1,100 | E: long-range water blast |
+| Banana | Fall in 10 times | E: drop a peel people slip on |
+| Rubber Chicken | Use abilities 50 times | E: SQUAWK, stunning everyone nearby |
+| Gum | Land 300 hits | hits stick the victim to your noodle, then fling them |
+| Cactus | Get hit 200 times | attackers get pricked back |
+| Balloon | Be in 3 Pool Parties | hits float the victim up, then drop them |
+| Anchor | Survive 5 minutes | half knockback; E: unmovable for 4 s |
+| Fire | Reach a 5 streak | hits make the victim panic-run for 2 s |
+| Mirror | End 3 streaks | E: shield that bounces the next hit back |
+| Trampoline | Play 2 hours | E: a trampoline that bounces anyone sky-high |
+| Squeaky Hammer | Hit the Giant Duck 100 times | every 3rd hit is a MEGA BONK |
+| Grapple | Fall in 100 times | E: zip to where your noodle lands (aims for the deck when falling) |
+| Paint | Play on 7 days | hits splat paint on the victim's screen |
+| Pufferfish | Soak someone to 200%, 20 times | E: puff up; anyone touching you is launched |
+
+Passive gimmicks live in `server/NoodleEffects`, abilities in
+`server/NoodleAbilities`, and the play-time stats in `server/StatsTracker`.
+Tune ranges and timings in `Config.luau`.
+
 **Special noodles** unlock by doing something instead of bonking:
 
 | Noodle | Unlock | Ability (E) |

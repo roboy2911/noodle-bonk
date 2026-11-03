@@ -49,6 +49,10 @@ local ABILITY_NAMES: { [string]: string } = {
 	Vanish = "Vanished",
 	Stampede = "Duck stampede",
 	Quack = "Giant Duck QUACK",
+	Zap = "Lightning zap",
+	Poof = "Swap / Clone poof",
+	Squawk = "Rubber chicken SQUAWK",
+	Slip = "Banana slip",
 }
 
 type Highlight = { time: number, stars: number, text: string }

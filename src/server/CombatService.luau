@@ -18,7 +18,9 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Noodles = require(Shared.Noodles)
 local Remotes = require(Shared.Remotes)
+local DataService = require(script.Parent.DataService)
 local NoodleAbilities = require(script.Parent.NoodleAbilities)
+local NoodleEffects = require(script.Parent.NoodleEffects)
 local Ragdoll = require(script.Parent.Ragdoll)
 
 type NoodleDef = Noodles.NoodleDef
@@ -220,11 +222,18 @@ local function pushNpc(target: Model, humanoid: Humanoid, root: BasePart, info: 
 		end)
 	end
 	root.AssemblyLinearVelocity = info.velocity
+	if info.spin then
+		root.AssemblyAngularVelocity = info.spin
+	end
 end
 
 function CombatService.applyKnockback(target: Model, info: KnockbackInfo)
 	if target:GetAttribute("NoKnockback") then
 		return -- can't be pushed around (the duck boss)
+	end
+	local anchoredUntil = target:GetAttribute("AnchoredUntil")
+	if type(anchoredUntil) == "number" and anchoredUntil > serverNow() then
+		return -- dropped anchor (Anchor noodle)
 	end
 	if info.stunTime and info.stunTime > 0 then
 		local current = target:GetAttribute("StunnedUntil")
@@ -275,9 +284,15 @@ function CombatService.strike(
 	if attacker and attacker.Character then
 		attacker.Character:SetAttribute("VanishedUntil", nil)
 	end
+	-- Mirror shields, Knight parries and Clone decoys take the hit instead
+	if NoodleEffects.intercept(attacker, target, targetRoot, direction, power) then
+		return
+	end
 
+	local before = target:GetAttribute("Soak")
+	local soakBefore = if type(before) == "number" then before else 0
 	local soak = CombatService.addSoak(target, def.SoakGain)
-	local scaled = power * (1 + soak / 100)
+	local scaled = NoodleEffects.scalePower(attacker, target, targetRoot, def, power * (1 + soak / 100))
 	for _, callback in strikeListeners do
 		task.spawn(callback, target, attacker, scaled)
 	end
@@ -286,14 +301,17 @@ function CombatService.strike(
 		flatDirection = flat(targetRoot.CFrame.LookVector) * -1
 	end
 
-	CombatService.applyKnockback(target, {
+	local info: KnockbackInfo = {
 		velocity = flatDirection.Unit * scaled + Vector3.yAxis * scaled * upward,
 		ragdollTime = def.RagdollTime or Config.RagdollTime,
 		stunTime = def.StunTime,
 		shake = math.clamp(scaled / 150, 0.15, 0.7),
-	})
+	}
+	NoodleEffects.shape(attacker, target, targetRoot, def, info) -- the noodle's gimmick
+	CombatService.applyKnockback(target, info)
 	CombatService.recordHit(target, attacker, def.Id, attackerName)
 	Remotes.HitConfirm:FireAllClients(targetRoot.Position, def.Id, attacker)
+	NoodleEffects.after(attacker, target, targetRoot, soakBefore, soak)
 end
 
 -- Swing validation ----------------------------------------------------------
@@ -378,6 +396,9 @@ local function onNoodleHit(player: Player, target: unknown, hitPos: unknown, dir
 	if not root or not def or not tool or CombatService.isStunned(character) then
 		return
 	end
+	if tool:GetAttribute("Thrown") then
+		return -- the Boomerang noodle is out flying
+	end
 	local _, targetRoot = CombatService.getLiving(victim)
 	if not targetRoot or CombatService.isProtected(victim) then
 		return
@@ -456,6 +477,7 @@ local function onUseAbility(player: Player)
 		return
 	end
 	lastAbility[player] = now
+	DataService.increment(player, "AbilitiesUsed", 1)
 
 	CombatService.endSpawnProtection(character)
 	ability({
@@ -469,6 +491,7 @@ local function onUseAbility(player: Player)
 end
 
 function CombatService.start()
+	NoodleEffects.init(CombatService)
 	Remotes.NoodleHit.OnServerEvent:Connect(onNoodleHit)
 	Remotes.UseAbility.OnServerEvent:Connect(onUseAbility)
 	RunService.Heartbeat:Connect(sampleYaw)

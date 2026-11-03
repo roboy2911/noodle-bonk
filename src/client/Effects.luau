@@ -211,6 +211,107 @@ function Effects.tentacle(from: BasePart, to: BasePart)
 	end)
 end
 
+-- A jagged lightning bolt through `points` (Lightning noodle).
+function Effects.zap(points: { Vector3 })
+	for i = 1, #points - 1 do
+		local from, to = points[i], points[i + 1]
+		local previous = from
+		local steps = 6
+		for step = 1, steps do
+			local t = step / steps
+			local point = from:Lerp(to, t)
+			if step < steps then
+				point += Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 2.5
+			end
+			local length = (point - previous).Magnitude
+			if length > 0.05 then
+				local bolt = effectPart()
+				bolt.Size = Vector3.new(0.35, 0.35, length)
+				bolt.CFrame = CFrame.lookAt((previous + point) / 2, point)
+				bolt.Color = Color3.fromRGB(255, 245, 120)
+				bolt.Material = Enum.Material.Neon
+				bolt.Parent = workspace
+				Debris:AddItem(bolt, 0.25)
+			end
+			previous = point
+		end
+	end
+end
+
+-- A rope from `from` to a point for a moment (Grapple noodle).
+function Effects.rope(from: BasePart, to: Vector3)
+	local rope = effectPart()
+	rope.Color = Color3.fromRGB(130, 110, 90)
+	rope.Parent = workspace
+	local started = os.clock()
+	local connection: RBXScriptConnection
+	connection = game:GetService("RunService").RenderStepped:Connect(function()
+		if os.clock() - started > 0.45 or not from.Parent then
+			connection:Disconnect()
+			rope:Destroy()
+			return
+		end
+		local a = from.Position
+		local length = (to - a).Magnitude
+		rope.Size = Vector3.new(0.3, 0.3, math.max(length, 0.1))
+		rope.CFrame = CFrame.lookAt((a + to) / 2, to)
+	end)
+end
+
+-- A quick white puff of smoke (Swap and Clone noodles).
+function Effects.poof(position: Vector3)
+	local part = effectPart()
+	part.Transparency = 1
+	part.Position = position
+	part.Parent = workspace
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Color = ColorSequence.new(Color3.new(1, 1, 1))
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 4) })
+	emitter.Transparency = NumberSequence.new(0.2, 1)
+	emitter.Lifetime = NumberRange.new(0.4, 0.7)
+	emitter.Speed = NumberRange.new(6, 14)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Rate = 0
+	emitter.Parent = part
+	emitter:Emit(30)
+	Debris:AddItem(part, 1.5)
+end
+
+-- Paint splats across this player's screen (hit by the Paint noodle).
+function Effects.paintSplat(color: Color3)
+	local playerGui = player:FindFirstChild("PlayerGui")
+	if not playerGui then
+		return
+	end
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "PaintSplat"
+	gui.IgnoreGuiInset = true
+	gui.DisplayOrder = 5
+	for _ = 1, 7 do
+		local blob = Instance.new("Frame")
+		local size = math.random(140, 320)
+		blob.Size = UDim2.fromOffset(size, size * math.random(70, 100) / 100)
+		blob.Position = UDim2.fromScale(math.random(5, 85) / 100, math.random(5, 85) / 100)
+		blob.AnchorPoint = Vector2.new(0.5, 0.5)
+		blob.BackgroundColor3 = color
+		blob.BackgroundTransparency = 0.05
+		blob.Rotation = math.random(0, 360)
+		blob.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.5, 0)
+		corner.Parent = blob
+	end
+	gui.Parent = playerGui
+	task.delay(1.5, function()
+		for _, blob in gui:GetChildren() do
+			if blob:IsA("Frame") then
+				game:GetService("TweenService"):Create(blob, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
+			end
+		end
+	end)
+	Debris:AddItem(gui, 2.1)
+end
+
 function Effects.start()
 	Remotes.HitConfirm.OnClientEvent:Connect(function(position: Vector3, noodleId: string, attacker: Player?)
 		local def = Noodles[noodleId]
@@ -234,6 +335,16 @@ function Effects.start()
 			Effects.splash(a) -- Splash noodle spray
 		elseif kind == "Shockwave" and typeof(a) == "Vector3" and type(b) == "number" then
 			Effects.shockwave(a, b)
+		elseif kind == "Zap" and type(a) == "table" then
+			Effects.zap(a)
+		elseif kind == "Rope" and typeof(a) == "Instance" and a:IsA("BasePart") and typeof(b) == "Vector3" then
+			Effects.rope(a, b)
+		elseif kind == "Poof" and typeof(a) == "Vector3" then
+			Effects.poof(a)
+		elseif kind == "Pop" and typeof(a) == "Vector3" and type(b) == "table" then
+			Effects.popText(a, tostring(b.text), if typeof(b.color) == "Color3" then b.color else Color3.new(1, 1, 1))
+		elseif kind == "PaintSplat" and typeof(a) == "Color3" then
+			Effects.paintSplat(a)
 		elseif kind == "Tentacle" and typeof(a) == "Instance" and typeof(b) == "Instance" then
 			if a:IsA("BasePart") and b:IsA("BasePart") then
 				Effects.tentacle(a, b)

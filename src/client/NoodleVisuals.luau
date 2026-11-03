@@ -94,6 +94,9 @@ local INVISIBLE_SELF = 0.7 -- your own Invisible noodle, faint so you can aim
 
 -- Invisible noodles and vanished players: hidden from others, faint to yourself.
 local function transparencyOf(visual: Visual): number
+	if visual.tool:GetAttribute("Thrown") then
+		return 1 -- the Boomerang noodle is out flying
+	end
 	local mine = visual.character == player.Character
 	local amount = Vanish.transparencyFor(visual.character)
 	if visual.def.Invisible then

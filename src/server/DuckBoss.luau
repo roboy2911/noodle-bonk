@@ -451,6 +451,7 @@ function DuckBoss.start(combatService: any)
 	combat.onStrike(function(target: Model, attacker: Player?, power: number)
 		if attacker and target == boss then
 			damage(power * settings().DamagePerPower)
+			DataService.increment(attacker, "DuckHits", 1) -- unlocks the Squeaky Hammer
 		end
 	end)
 	local elapsed = 0

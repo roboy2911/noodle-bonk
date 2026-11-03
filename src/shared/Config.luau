@@ -83,12 +83,36 @@ local Config = {
 
 	-- Noodle abilities
 	VanishTime = 4, -- Invisible noodle: seconds you stay invisible (hitting someone ends it)
-	MagnetRadius = 32, -- Magnet noodle: studs it pulls from
+	MagnetRadius = 42, -- Magnet noodle: studs it pulls from
 	TornadoTime = 3, -- Tornado noodle: seconds you spin
 	TornadoSpinSpeed = 22, -- radians per second (about 3.5 turns a second)
-	SprayRange = 16, -- Splash noodle: studs the spray reaches
+	SprayRange = 22, -- Splash noodle: studs the spray reaches
 	SpraySoak = 40, -- Splash noodle: Soak added by the spray
 	LuckyChance = 2500, -- Lucky noodle: 1 in this many bonks unlocks it
+
+	-- Gimmick noodles (see server/NoodleAbilities and server/NoodleEffects)
+	AbilityRange = 28, -- how far "aim at someone" abilities reach (Kraken, Swap, Lightning...)
+	ProjectileSpeed = 90, -- Baguette chunk
+	ProjectileRange = 70,
+	CannonSpeed = 150, -- Water Cannon blast
+	CannonRange = 90,
+	BoomerangRange = 40, -- how far out the Boomerang flies before coming back
+	ShrinkTime = 6,
+	ShrinkKnockback = 2, -- shrunk players fly this many times further
+	StickyTime = 1.5, -- Gum: how long the victim stays stuck
+	BalloonTime = 2,
+	BurnTime = 2,
+	AnchorTime = 4,
+	MirrorTime = 3,
+	ParryWindow = 0.5,
+	ParryPower = 1.5, -- a parry launches the attacker this many times harder
+	TrampolineTime = 10,
+	TrampolineBounce = 120,
+	BananaTime = 20, -- peels stay this long (3 per player at most)
+	PuffTime = 3,
+	SquawkRadius = 20,
+	GravityRadius = 26,
+	CloneTime = 6,
 
 	-- Duck jar and Giant Rubber Duck boss (each server has its own). Every bonk
 	-- drops a duck in the jar; a full jar spawns the boss. Bonk it into the
@@ -114,7 +138,7 @@ local Config = {
 		Lifetime = 420, -- seconds before it gets bored and leaves
 		StayInside = 20, -- it won't walk closer than this to the deck edge
 	},
-	StampedeLength = 60, -- Duck noodle: studs the duck stampede runs
+	StampedeLength = 75, -- Duck noodle: studs the duck stampede runs
 	StampedePower = 75,
 
 	-- Noodle tool
@@ -170,6 +194,12 @@ local Config = {
 		Vanish = { Ids = { 9120286427 }, Volume = 0.6 }, -- Tubular Whoosh Rise
 		Magnet = { Ids = { 9113524242 }, Volume = 0.7 }, -- Body Impact 3
 		Tornado = { Ids = { 9120972444, 9120972457, 9120972323 }, Volume = 0.9 }, -- Wood Whoosh Quick Swings
+		Squawk = { Ids = { 9113854234, 9113854527 }, Volume = 1 }, -- Comic Boinks (swap in a chicken squawk)
+		Squeak = { Ids = { 9113854388, 9113854393 }, Volume = 1 }, -- Comic Boinks
+		Throw = { Ids = { 9120972444, 9120972457 }, Volume = 0.8 }, -- Wood Whoosh Quick Swings
+		Zap = { Ids = { 9116394545 }, Volume = 0.9 }, -- Magic Glows Chiming Hits (swap in a zap)
+		Poof = { Ids = { 9113263454 }, Volume = 0.7 }, -- Balloon Pop
+		Slip = { Ids = { 9119197896 }, Volume = 0.7 }, -- Slide Whistle
 		Quack = { Ids = { 9113854528, 9113854411 }, Volume = 1 }, -- Comic Boinks (swap in a real quack)
 		Stampede = { Ids = { 9113854234, 9113854388, 9113854393 }, Volume = 0.9 }, -- Comic Boinks
 		Streak = { Ids = { 9116394545 }, Volume = 0.8 }, -- Magic Glows Chiming Hits
