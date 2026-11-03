@@ -94,11 +94,10 @@ def make_material(name, color, roughness=0.45, emission=0.0):
             bsdf.inputs["Emission Strength"].default_value = emission
     return mat
 
-INK = make_material("Ink", (0.06, 0.06, 0.1), 0.8)
-INK.use_backface_culling = True  # used as an inside-out shell: a cartoon outline
+INK_FLAT = make_material("InkFlat", (0.06, 0.06, 0.1), 0.8)  # dark, for the BONK! outline
 
 PALETTE = {
-    "Foam": (1.0, 0.41, 0.71), "Sand": (0.94, 0.92, 0.86), "Cyan": (0.31, 0.85, 1.0), "White": (0.97, 0.97, 0.97),
+    "Foam": (1.0, 0.41, 0.71), "Sand": (0.95, 0.9, 0.78), "Cyan": (0.31, 0.85, 1.0), "White": (0.97, 0.97, 0.97),
     "Wood": (0.67, 0.47, 0.29), "WoodDark": (0.47, 0.31, 0.18), "Red": (0.92, 0.24, 0.24), "Yellow": (1.0, 0.84, 0.2),
     "Orange": (1.0, 0.55, 0.12), "Black": (0.08, 0.08, 0.08), "Blue": (0.24, 0.55, 1.0), "Green": (0.35, 0.78, 0.35),
     "Leaf": (0.27, 0.67, 0.27), "Bark": (0.59, 0.43, 0.27), "Brown": (0.43, 0.27, 0.16), "Pink": (1.0, 0.41, 0.71),
@@ -118,15 +117,9 @@ def palette_material(token, color_a=None, color_b=None):
     return _palette_mats[key]
 
 def add_outline(obj, thickness=0.07):
-    """Inside-out shell in the ink color: a cartoon outline in Eevee."""
-    if obj.type != "MESH":
-        return
-    obj.data.materials.append(INK)
-    mod = obj.modifiers.new("Outline", "SOLIDIFY")
-    mod.thickness = thickness
-    mod.offset = 1
-    mod.use_flip_normals = True
-    mod.material_offset = len(obj.data.materials) - 1
+    """Cartoon outlines come from Freestyle (set up at the end), so nothing to do per object."""
+    return
+
 
 # ------------------------------------------------------------------ game models
 
@@ -359,13 +352,14 @@ place_model("Umbrella", (22, 118, 0), 20, color_a=(1.0, 0.41, 0.71), color_b=(1,
 place_model("Umbrella", (-26, 108, 0), -15, color_a=(0.31, 0.78, 1.0), color_b=(1, 1, 1))
 place_model("LoungeChair", (-12, 126, 0), 70)
 place_model("LoungeChair", (-6.5, 127, 0), 70)
-place_model("BeachBall", (9, 147, 0), 30)
-place_model("SwimRing", (-9, 139, 0), 0, color_a=(1.0, 0.3, 0.3), color_b=(1, 1, 1))
-place_model("PalmTree", (-33, 152, 0), 40)
-place_model("PalmTree", (34, 146, 0), 160)
-place_model("Crate", (16, 137, 0), 15)
-place_model("Crate", (19.5, 139, 0), -10)
-place_model("RubberDuck", (-62, 135, 0), 200)
+place_model("BeachBall", (-6, 149, 0), 30)
+place_model("SwimRing", (5, 155, 0), 0, color_a=(1.0, 0.3, 0.3), color_b=(1, 1, 1))
+place_model("PalmTree", (-15, 159, 0), 40)
+place_model("PalmTree", (-27, 150, 0), 160)
+place_model("Umbrella", (-9, 140, 0), 10, color_a=(1.0, 0.84, 0.2), color_b=(1, 1, 1))
+place_model("Crate", (-13, 146, 0), 15)
+place_model("Crate", (-16, 143.5, 0), -10)
+place_model("RubberDuck", (-34, 150, 0), 200)
 place_model("LifeguardTower", (60, 110, 0), 210)
 
 # ------------------------------------------------------------------ the players
@@ -413,6 +407,10 @@ for frame in range(IMPACT, FRAME_END + 1, 2):
     if pos.z <= WATER_Z:
         landed_frame, landing = frame, Vector((pos.x, pos.y, WATER_Z))
         key(victim["root"], "location", frame, landing - Vector((0, 0, 8)))  # under the surface
+        # Gone once they're in the water (so no outline shows through it)
+        key(victim["root"], "scale", 1, Vector((1, 1, 1)))
+        key(victim["root"], "scale", frame - 1, Vector((1, 1, 1)))
+        key(victim["root"], "scale", frame, Vector((0, 0, 0)))
         break
     key(victim["root"], "location", frame, pos)
     spin = t * 7.5
@@ -432,7 +430,7 @@ for limb, phase in (("shoulderL", 0), ("shoulderR", 1), ("hipL", 1), ("hipR", 0)
 
 # ------------------------------------------------------------------ BONK!
 
-impact_point = V_POS + Vector((0, -1.0, 5.2))
+impact_point = V_POS + Vector((-1.5, -1.0, 7.0))
 fx = empty("BonkFx", None, impact_point)
 
 def flat_star(name, outer, inner, points, material, z):
@@ -453,10 +451,10 @@ def flat_star(name, outer, inner, points, material, z):
     obj.parent = fx
     return obj
 
-flat_star("BurstOutline", 4.9, 3.1, 13, INK, -0.12)
+flat_star("BurstOutline", 4.9, 3.1, 13, INK_FLAT, -0.12)
 flat_star("Burst", 4.5, 2.8, 13, make_material("BurstYellow", (1.0, 0.87, 0.24), 0.5, emission=0.6), -0.06)
 for label, offset, material, z in (
-    ("BonkTextOutline", 0.16, INK, 0.0),
+    ("BonkTextOutline", 0.16, INK_FLAT, 0.0),
     ("BonkText", 0.0, make_material("BonkPink", (1.0, 0.28, 0.48), 0.4, emission=0.6), 0.12),
 ):
     text = bpy.data.curves.new(label, "FONT")
@@ -473,7 +471,7 @@ for label, offset, material, z in (
     obj.location = (0, 0, z)
     obj.rotation_euler = (0, 0, math.radians(10))
 
-for frame, s in [(1, 0.0), (IMPACT - 1, 0.0), (IMPACT + 2, 1.35), (IMPACT + 5, 1.0), (IMPACT + 22, 1.0), (IMPACT + 27, 0.0)]:
+for frame, s in [(1, 0.0), (IMPACT - 1, 0.0), (IMPACT + 2, 0.75), (IMPACT + 5, 0.55), (IMPACT + 14, 0.55), (IMPACT + 18, 0.0)]:
     key(fx, "scale", frame, Vector((s, s, s)))
 
 # ------------------------------------------------------------------ splash
@@ -518,13 +516,13 @@ ring = bpy.data.objects.new("SplashRing", ring_mesh)
 collection.objects.link(ring)
 ring.location = landing + Vector((0, 0, 0.1))
 ring_mesh.materials.append(DROP)
-for frame, s in [(1, 0.0), (landed_frame - 1, 0.0), (landed_frame + 2, 3.0), (landed_frame + 25, 14.0), (landed_frame + 32, 0.0)]:
+for frame, s in [(1, 0.0), (landed_frame - 1, 0.0), (landed_frame + 2, 2.0), (landed_frame + 25, 7.0), (landed_frame + 32, 0.0)]:
     key(ring, "scale", frame, Vector((s, s, 1)))
 
 # ------------------------------------------------------------------ camera
 
 cam_data = bpy.data.cameras.new("Camera")
-cam_data.lens = 24
+cam_data.lens = 28
 cam = bpy.data.objects.new("Camera", cam_data)
 collection.objects.link(cam)
 scene.camera = cam
@@ -539,14 +537,22 @@ face.target = cam
 face.track_axis = "TRACK_Z"
 face.up_axis = "UP_Y"
 
-# Behind the bonker's shoulder, then following the flight down to the splash
-for frame, where, look in [
-    (1, (7.5, 133.5, 5.2), (0, 151, 4.2)),
-    (IMPACT, (6.5, 136.0, 5.8), (0, 152.5, 4.8)),
-    (IMPACT + 18, (2.0, 150.0, 11.0), (-9, 172, 10)),
-    (landed_frame, (-10.0, 185.0, 14.0), tuple(landing + Vector((0, 0, 3)))),
-    (FRAME_END, (-12.0, 190.0, 13.0), tuple(landing + Vector((0, 0, 2)))),
-]:
+# A 3/4 view of both players, then a chase of the flight down to the splash.
+# The focus follows the victim through the air.
+def victim_at(frame):
+    t = max(0, frame - IMPACT) / FPS
+    return V_POS + Vector((launch.x * t, launch.y * t, launch.z * t - 0.5 * GRAVITY * t * t)) + Vector((0, 0, 3))
+
+camera_path = [
+    (1, (14.0, 137.0, 10.0), Vector((-1.0, 150.5, 3.0))),
+    (IMPACT - 2, (12.0, 139.0, 9.5), Vector((-0.5, 151.5, 3.5))),
+]
+for frame in range(IMPACT + 4, landed_frame + 1, 6):
+    target = victim_at(frame)
+    camera_path.append((frame, tuple(target + Vector((13, -15, 5))), target))
+camera_path.append((landed_frame + 3, tuple(landing + Vector((14, -18, 9))), landing + Vector((0, 0, 3))))
+camera_path.append((FRAME_END, tuple(landing + Vector((15, -20, 10))), landing + Vector((0, 0, 4))))
+for frame, where, look in camera_path:
     key(cam, "location", frame, Vector(where))
     key(focus, "location", frame, Vector(look))
 
@@ -590,6 +596,17 @@ try:
     scene.view_settings.view_transform = "Standard"  # bright cartoon colors
 except TypeError:
     pass
+
+# Cartoon outlines around everything (Freestyle draws them in any renderer)
+scene.render.use_freestyle = True
+scene.render.line_thickness_mode = "ABSOLUTE"
+scene.render.line_thickness = 2.2
+lineset = scene.view_layers[0].freestyle_settings.linesets[0] if scene.view_layers[0].freestyle_settings.linesets else scene.view_layers[0].freestyle_settings.linesets.new("Outlines")
+lineset.select_silhouette = True
+lineset.select_border = True
+lineset.select_crease = False
+lineset.linestyle.color = (0.02, 0.02, 0.04)
+lineset.linestyle.thickness = 2.2
 
 scene.render.resolution_x = 1080
 scene.render.resolution_y = 1920
