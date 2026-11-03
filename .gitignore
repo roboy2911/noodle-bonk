@@ -10,3 +10,4 @@ sourcemap.json
 # Editors / OS
 .vscode/
 .DS_Store
+renders/

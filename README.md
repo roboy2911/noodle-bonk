@@ -71,6 +71,13 @@ Cloud, and loaded by the game at startup:
 (roboy2911). In a fresh unsaved Studio place you'll see the simple parts. Use
 **File > Save to Roblox** (or publish) and run again to see the models.
 
+**Animated clip for TikTok / Shorts:** `tools/blender/showcase_scene.py`
+builds a vertical (1080x1920) Blender scene with the game's models: a player
+spins, their noodle bonks another player off the deck and into the pool. Open
+it in Blender's Scripting tab and press Run Script (it saves
+`renders/noodle_bonk_showcase.blend`), then Render > Render Animation. Or:
+`blender --background --python tools/blender/showcase_scene.py -- --render`.
+
 To change a model: edit `build_models.py`, then rebuild and re-upload:
 
 ```bash
