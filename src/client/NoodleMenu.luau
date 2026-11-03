@@ -42,6 +42,9 @@ local NoodleMenu = {}
 type Card = {
 	def: NoodleDef,
 	button: TextButton,
+	swatch: Frame,
+	nameLabel: TextLabel,
+	descLabel: TextLabel,
 	stroke: UIStroke,
 	status: TextLabel,
 	progressTrack: Frame,
@@ -104,12 +107,14 @@ local function sortedNoodles(): { NoodleDef }
 			return -1
 		end
 		local unlock = def.Unlock
-		if not unlock then
+		if def.Secret then
+			return if def.Id == "Mystery" then 400000 else 300000 -- secrets last, ??? at the very end
+		elseif not unlock then
 			return 0
 		elseif unlock.Stat == "Bonks" then
 			return unlock.Amount
 		elseif unlock.Stat == "DuckBosses" then
-			return 50000 -- the best noodle, right after the Bonks ladder
+			return 50000 -- the boss noodle, right after the Bonks ladder
 		end
 		-- Special noodles after the Bonks ladder, the rare Lucky one last
 		return if unlock.Stat == "Lucky" then 200000 else 100000
@@ -193,13 +198,20 @@ local function buildCard(parent: Instance, def: NoodleDef, order: number, ranges
 	swatch.Parent = button
 	corner(swatch, 6)
 
-	label(button, def.DisplayName, Enum.Font.LuckiestGuy, 20, TEXT_COLOR).LayoutOrder = 2
+	local nameLabel = label(button, def.DisplayName, Enum.Font.LuckiestGuy, 20, TEXT_COLOR)
+	nameLabel.LayoutOrder = 2
 
+	-- Room for 3-4 lines; long descriptions shrink a little instead of being cut off
 	local desc = label(button, def.Description, Enum.Font.Gotham, 12, SUBTEXT_COLOR)
-	desc.Size = UDim2.new(1, 0, 0, 30)
+	desc.Size = UDim2.new(1, 0, 0, 46)
 	desc.TextWrapped = true
+	desc.TextScaled = true
 	desc.TextYAlignment = Enum.TextYAlignment.Top
 	desc.LayoutOrder = 3
+	local fit = Instance.new("UITextSizeConstraint")
+	fit.MaxTextSize = 12
+	fit.MinTextSize = 8
+	fit.Parent = desc
 
 	statBar(button, "Power", def.Knockback / ranges.maxPower, Color3.fromRGB(255, 110, 110), 4)
 	statBar(button, "Reach", def.Length / ranges.maxReach, Color3.fromRGB(110, 190, 255), 5)
@@ -217,6 +229,9 @@ local function buildCard(parent: Instance, def: NoodleDef, order: number, ranges
 	local card: Card = {
 		def = def,
 		button = button,
+		swatch = swatch,
+		nameLabel = nameLabel,
+		descLabel = desc,
 		stroke = stroke,
 		status = status,
 		progressTrack = progressTrack,
@@ -327,6 +342,12 @@ local function refresh()
 		local equipped = unlocked and id == current
 		card.locked = not unlocked
 		card.button.BackgroundColor3 = if unlocked then CARD_COLOR else LOCKED_CARD_COLOR
+
+		-- Secret noodles stay a mystery until found: "???" and just the hint
+		local hidden = card.def.Secret == true and not unlocked
+		card.nameLabel.Text = if hidden then "???" else card.def.DisplayName
+		card.descLabel.Text = if hidden then `"{card.def.Hint or "..."}"` else card.def.Description
+		card.swatch.BackgroundColor3 = if hidden then Color3.fromRGB(40, 40, 50) else card.def.Color
 		card.stroke.Enabled = equipped
 		card.progressTrack.Visible = not unlocked
 		card.progressFill.Size = UDim2.fromScale(Unlocks.progress(card.def, stats), 1)
@@ -338,7 +359,7 @@ local function refresh()
 			card.status.Text = if card.def.Ability then `Ability: {card.def.Ability} [E]` else "Click to equip"
 			card.status.TextColor3 = SUBTEXT_COLOR
 		else
-			card.status.Text = `LOCKED: {Unlocks.describe(card.def, stats)}`
+			card.status.Text = if card.def.Secret then "SECRET NOODLE" else `LOCKED: {Unlocks.describe(card.def, stats)}`
 			card.status.TextColor3 = LOCKED_TEXT_COLOR
 		end
 	end
@@ -360,7 +381,11 @@ local function checkNewUnlocks()
 		for id, unlocked in nowUnlocked do
 			if unlocked and not known[id] then
 				Effects.playSound("Unlock")
-				BonkUI.showBanner(`UNLOCKED: {Noodles[id].DisplayName}!`, Noodles[id].Color)
+				if Noodles[id].Secret then
+					BonkUI.showBanner(`SECRET FOUND: {Noodles[id].DisplayName}!`, Color3.fromRGB(255, 215, 60), 4)
+				else
+					BonkUI.showBanner(`UNLOCKED: {Noodles[id].DisplayName}!`, Noodles[id].Color)
+				end
 			end
 		end
 	end
@@ -444,7 +469,7 @@ local function build()
 	buildSkinRow(panel)
 
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromOffset(220, 236)
+	grid.CellSize = UDim2.fromOffset(220, 254)
 	grid.CellPadding = UDim2.fromOffset(12, 12)
 	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	grid.SortOrder = Enum.SortOrder.LayoutOrder

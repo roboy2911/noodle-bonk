@@ -18,6 +18,7 @@ local DataService = require(script.Parent.DataService)
 local Streaks = require(script.Parent.Streaks)
 local MonetizationService = require(script.Parent.MonetizationService)
 local DuckJar = require(script.Parent.DuckJar)
+local SecretService = require(script.Parent.SecretService)
 
 -- Sent to clients through Remotes.Bonked
 export type BonkInfo = {
@@ -109,6 +110,9 @@ local function bonk(character: Model, root: BasePart)
 		bonus = streak and streak.bonus,
 	}
 	Remotes.Bonked:FireAllClients(info)
+
+	-- Secret noodles: Clown (bonked by Tornado) and the ??? infection
+	SecretService.onBonk(attacker, victim, record and record.noodleId)
 
 	-- Every bonk (by a player or a dummy) drops a rubber duck in the jar
 	if attacker or dummyName then

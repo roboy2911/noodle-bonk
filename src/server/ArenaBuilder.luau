@@ -40,7 +40,14 @@ local RING_COLORS = {
 -- Cylinders run along X. This stands one upright.
 local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
 
-local function part(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material?): Part
+local function part(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material?
+): Part
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Size = size
@@ -69,13 +76,27 @@ local function fallbackUmbrella(parent: Instance, base: CFrame, color: Color3)
 	model.Parent = parent
 	local pole = part(model, "Pole", Vector3.new(10, 0.6, 0.6), base * CFrame.new(0, 5, 0) * UPRIGHT, POLE_COLOR)
 	pole.Shape = Enum.PartType.Cylinder
-	local canopy = part(model, "Canopy", Vector3.new(0.6, 14, 14), base * CFrame.new(0, 10, 0) * UPRIGHT, color, Enum.Material.Fabric)
+	local canopy = part(
+		model,
+		"Canopy",
+		Vector3.new(0.6, 14, 14),
+		base * CFrame.new(0, 10, 0) * UPRIGHT,
+		color,
+		Enum.Material.Fabric
+	)
 	canopy.Shape = Enum.PartType.Cylinder
 end
 
 local function crate(parent: Instance, cframe: CFrame)
 	if not ModelLibrary.spawn("Crate", cframe, parent) then
-		part(parent, "Crate", Vector3.new(5, 5, 5), cframe * CFrame.new(0, 2.5, 0), WOOD_COLOR, Enum.Material.WoodPlanks)
+		part(
+			parent,
+			"Crate",
+			Vector3.new(5, 5, 5),
+			cframe * CFrame.new(0, 2.5, 0),
+			WOOD_COLOR,
+			Enum.Material.WoodPlanks
+		)
 	end
 end
 
@@ -105,10 +126,23 @@ local function buildDeck(arena: Model)
 	end
 
 	-- Fallback: blue stripe around the edge so the drop is easy to see
-	local edge = part(arena, "EdgeStripe", Vector3.new(0.2, Config.ArenaDiameter, Config.ArenaDiameter), CFrame.new(0, 0.05, 0) * UPRIGHT, Color3.fromRGB(80, 200, 255))
+	local edge = part(
+		arena,
+		"EdgeStripe",
+		Vector3.new(0.2, Config.ArenaDiameter, Config.ArenaDiameter),
+		CFrame.new(0, 0.05, 0) * UPRIGHT,
+		Color3.fromRGB(80, 200, 255)
+	)
 	edge.Shape = Enum.PartType.Cylinder
 	edge.CanCollide = false
-	local inner = part(arena, "EdgeInner", Vector3.new(0.25, Config.ArenaDiameter - 6, Config.ArenaDiameter - 6), CFrame.new(0, 0.06, 0) * UPRIGHT, DECK_COLOR, Enum.Material.Concrete)
+	local inner = part(
+		arena,
+		"EdgeInner",
+		Vector3.new(0.25, Config.ArenaDiameter - 6, Config.ArenaDiameter - 6),
+		CFrame.new(0, 0.06, 0) * UPRIGHT,
+		DECK_COLOR,
+		Enum.Material.Concrete
+	)
 	inner.Shape = Enum.PartType.Cylinder
 	inner.CanCollide = false
 end
@@ -143,7 +177,14 @@ local function buildProps(obstacles: Folder)
 		for _, side in { -2.4, 2.4 } do
 			local spot = base * CFrame.new(side, 0, 0) * CFrame.Angles(0, math.rad(90), 0)
 			if not ModelLibrary.spawn("LoungeChair", spot, obstacles) then
-				part(obstacles, "Bench", Vector3.new(3, 2.5, 6), spot * CFrame.new(0, 1.25, 0), WOOD_COLOR, Enum.Material.Wood)
+				part(
+					obstacles,
+					"Bench",
+					Vector3.new(3, 2.5, 6),
+					spot * CFrame.new(0, 1.25, 0),
+					WOOD_COLOR,
+					Enum.Material.Wood
+				)
 			end
 		end
 	end
@@ -172,10 +213,27 @@ local function buildProps(obstacles: Folder)
 
 	for i = 0, 5 do
 		local base = ringCFrame(150, i * 60 + 8, 0) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
-		ModelLibrary.spawn("PalmTree", base, obstacles, random:NextNumber(0.85, 1.15))
+		local palm = ModelLibrary.spawn("PalmTree", base, obstacles, random:NextNumber(0.85, 1.15))
+		if palm and i == 1 then
+			-- Secret: a coconut hidden at the top of this palm (Coconut noodle)
+			local cframe, size = palm:GetBoundingBox()
+			local coconut = Instance.new("Part")
+			coconut.Name = "SecretCoconut"
+			coconut.Shape = Enum.PartType.Ball
+			coconut.Size = Vector3.one * 2.2
+			coconut.Color = Color3.fromRGB(110, 70, 40)
+			coconut.Anchored = true
+			coconut.CanCollide = false
+			coconut.Position = cframe.Position + Vector3.new(0, size.Y / 2 - 2.5, 0)
+			coconut.Parent = obstacles
+		end
 	end
 
-	ModelLibrary.spawn("RubberDuck", ringCFrame(128, 300, 0) * CFrame.Angles(0, math.rad(200), 0), obstacles)
+	local bigDuck =
+		ModelLibrary.spawn("RubberDuck", ringCFrame(128, 300, 0) * CFrame.Angles(0, math.rad(200), 0), obstacles)
+	if bigDuck then
+		bigDuck.Name = "SecretDuck" -- stand on it long enough... (Quack noodle)
+	end
 
 	for i = 1, 6 do
 		local angle = random:NextNumber(0, 360)

@@ -28,6 +28,8 @@ export type NoodleDef = {
 	Invisible: boolean?, -- other players can't see this noodle (you see it faintly)
 	Confetti: boolean?, -- confetti bursts out on every hit
 	Gimmick: string?, -- a passive on-hit (or on-being-hit) effect, see server/NoodleEffects
+	Secret: boolean?, -- shown as "???" with only its Hint until unlocked
+	Hint: string?, -- vague clue shown for a locked secret noodle
 
 	Ability: string?, -- name of an active ability (E / ButtonY / mobile button)
 	AbilityCooldown: number?,
@@ -122,7 +124,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Tornado = {
 		Id = "Tornado",
 		DisplayName = "Tornado Noodle",
-		Description = "The strongest noodle. Press E to spin like a tornado and bonk everyone around you.",
+		Description = "Press E to spin like a tornado and bonk everyone around you.",
 		Color = Color3.fromRGB(150, 215, 235),
 		Length = 8,
 		Thickness = 0.8,
@@ -343,21 +345,6 @@ local Noodles: { [string]: NoodleDef } = {
 		Unlock = { Stat = "AbilitiesUsed", Amount = 50 },
 	},
 
-	Gum = {
-		Id = "Gum",
-		DisplayName = "Gum Noodle",
-		Description = "Sticky! Hits glue your victim to your noodle for a moment before they fling off.",
-		Color = Color3.fromRGB(255, 130, 200),
-		Length = 7,
-		Thickness = 0.8,
-		Stiffness = 200,
-		Knockback = 50,
-		Cooldown = 0.5,
-		SoakGain = 12,
-		Gimmick = "Sticky",
-		Unlock = { Stat = "Hits", Amount = 300 },
-	},
-
 	Cactus = {
 		Id = "Cactus",
 		DisplayName = "Cactus Noodle",
@@ -376,7 +363,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Balloon = {
 		Id = "Balloon",
 		DisplayName = "Balloon Noodle",
-		Description = "Hits make your victim float up like a balloon, then drop.",
+		Description = "Press E, then your next hit floats your victim up like a balloon before they drop.",
 		Color = Color3.fromRGB(255, 90, 90),
 		Length = 7,
 		Thickness = 0.9,
@@ -385,6 +372,8 @@ local Noodles: { [string]: NoodleDef } = {
 		Cooldown = 0.5,
 		SoakGain = 12,
 		Gimmick = "Balloon",
+		Ability = "ArmBalloon",
+		AbilityCooldown = 8,
 		Unlock = { Stat = "PoolParties", Amount = 3 },
 	},
 
@@ -515,11 +504,135 @@ local Noodles: { [string]: NoodleDef } = {
 		Unlock = { Stat = "MaxSoaks", Amount = 20 },
 	},
 
-	-- The best noodle: only from defeating the Giant Rubber Duck boss
+	-- Secret noodles: "???" in the menu with only a vague hint ----------------
+	-- (how they're really unlocked lives in server/SecretService)
+
+	Quack = {
+		Id = "Quack",
+		DisplayName = "Quack Noodle",
+		Description = "Hits turn your victim into a rubber duck for 5 seconds.",
+		Color = Color3.fromRGB(255, 225, 60),
+		Length = 7,
+		Thickness = 0.85,
+		Stiffness = 280,
+		Knockback = 48,
+		Cooldown = 0.6,
+		SoakGain = 12,
+		Gimmick = "DuckForm",
+		Secret = true,
+		Hint = "The big yellow one in the corner is lonely.",
+		Unlock = { Stat = "SecretQuack", Amount = 1 },
+	},
+
+	Coconut = {
+		Id = "Coconut",
+		DisplayName = "Coconut Noodle",
+		Description = "Hits make a coconut fall on your victim's head a moment later. Double bonk!",
+		Color = Color3.fromRGB(120, 80, 45),
+		Length = 7,
+		Thickness = 0.9,
+		Stiffness = 320,
+		Knockback = 46,
+		Cooldown = 0.6,
+		SoakGain = 12,
+		Gimmick = "Coconut",
+		Secret = true,
+		Hint = "Look up. Way up.",
+		Unlock = { Stat = "SecretCoconut", Amount = 1 },
+	},
+
+	Clown = {
+		Id = "Clown",
+		DisplayName = "Clown Noodle",
+		Description = "Hits reverse your victim's controls for 3 seconds. Left is right, forward is back!",
+		Color = Color3.fromRGB(255, 70, 70),
+		Length = 7,
+		Thickness = 0.85,
+		Stiffness = 240,
+		Knockback = 48,
+		Cooldown = 0.5,
+		SoakGain = 12,
+		Gimmick = "Reverse",
+		Secret = true,
+		Hint = "Get bonked by the best.",
+		Unlock = { Stat = "TornadoBonked", Amount = 10 },
+	},
+
+	Lifeguard = {
+		Id = "Lifeguard",
+		DisplayName = "Lifeguard Noodle",
+		Description = "Press E to throw a life ring to the nearest player falling off the deck and pull them back.",
+		Color = Color3.fromRGB(255, 60, 60),
+		Length = 7.5,
+		Thickness = 0.85,
+		Stiffness = 300,
+		Knockback = 50,
+		Cooldown = 0.5,
+		SoakGain = 12,
+		Ability = "LifeRing",
+		AbilityCooldown = 6,
+		Secret = true,
+		Hint = "Save, don't bonk.",
+		Unlock = { Stat = "SecretLifeguard", Amount = 1 },
+	},
+
+	Snail = {
+		Id = "Snail",
+		DisplayName = "Snail Noodle",
+		Description = "Hits leave slime on the floor. Anyone who walks through it moves at half speed.",
+		Color = Color3.fromRGB(140, 200, 90),
+		Length = 7,
+		Thickness = 0.9,
+		Stiffness = 200,
+		Knockback = 48,
+		Cooldown = 0.6,
+		SoakGain = 12,
+		Gimmick = "Slime",
+		Secret = true,
+		Hint = "Slow and steady wins.",
+		Unlock = { Stat = "SecretSnail", Amount = 1 },
+	},
+
+	Moon = {
+		Id = "Moon",
+		DisplayName = "Moon Noodle",
+		Description = "You're floaty while you hold it: huge jumps and slow falls.",
+		Color = Color3.fromRGB(200, 205, 230),
+		Length = 7,
+		Thickness = 0.85,
+		Stiffness = 280,
+		Knockback = 50,
+		Cooldown = 0.5,
+		SoakGain = 12,
+		Gimmick = "LowGravity",
+		Secret = true,
+		Hint = "What goes up...",
+		Unlock = { Stat = "SecretMoon", Amount = 1 },
+	},
+
+	Mystery = {
+		Id = "Mystery",
+		DisplayName = "???",
+		Description = "Nobody knows where it came from. Press E to STOP TIME (once every 5 minutes).",
+		Color = Color3.fromRGB(25, 20, 35),
+		Length = 7.5,
+		Thickness = 0.85,
+		Stiffness = 300,
+		Knockback = 56,
+		Cooldown = 0.5,
+		SoakGain = 13,
+		Ability = "TimeStop",
+		AbilityCooldown = 300,
+		Secret = true,
+		Hint = "...",
+		Unlock = { Stat = "Infected", Amount = 1 },
+	},
+
+	-- Only from defeating the Giant Rubber Duck boss
 	Duck = {
 		Id = "Duck",
 		DisplayName = "Duck Noodle",
-		Description = "The best noodle in the game. Help defeat the Giant Rubber Duck to earn it. Press E for a Duck Stampede!",
+		Description = "Earned by helping defeat the Giant Rubber Duck. Press E for a Duck Stampede!",
 		Color = Color3.fromRGB(255, 215, 40),
 		Length = 8.5,
 		Thickness = 1.0,

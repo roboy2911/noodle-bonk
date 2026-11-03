@@ -222,6 +222,15 @@ function BonkUI.start()
 			addFeedEntry("The Giant Duck got bored and waddled away...", yellow)
 		end
 	end)
+	Remotes.SecretNews.OnClientEvent:Connect(function(kind: string, name: string, count: number?)
+		if kind == "Found" then
+			addFeedEntry(`🔍 {name} found a SECRET NOODLE!`, Color3.fromRGB(255, 215, 60))
+		elseif kind == "Infected" then
+			local number = if count then ` (#{count} infected)` else ""
+			addFeedEntry(`⚠ ??? has spread to {name}{number}`, Color3.fromRGB(190, 130, 255))
+			Effects.playSound("Zap")
+		end
+	end)
 	Remotes.LuckyNoodle.OnClientEvent:Connect(function(finder: Player)
 		local lucky = Color3.fromRGB(190, 255, 70)
 		if finder == player then

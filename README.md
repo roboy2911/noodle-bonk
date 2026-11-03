@@ -217,7 +217,7 @@ milestones, ended streaks and admin announcements for everyone.
 | Tornado | Bonk 400 | Tornado: spin for 3 s, hitting everyone your noodle touches |
 | **Duck** | Help defeat the Giant Rubber Duck | Stampede: a row of rubber ducks charges forward and bowls everyone over. The best noodle in the game |
 
-**Gimmick noodles** (24): each has its own trick. Abilities are on E; the
+**Gimmick noodles** (23): each has its own trick. Abilities are on E; the
 rest are passive (they happen when you hit, or get hit).
 
 | Noodle | Unlock | Gimmick |
@@ -235,9 +235,8 @@ rest are passive (they happen when you hit, or get hit).
 | Water Cannon | Bonk 1,100 | E: long-range water blast |
 | Banana | Fall in 10 times | E: drop a peel people slip on |
 | Rubber Chicken | Use abilities 50 times | E: SQUAWK, stunning everyone nearby |
-| Gum | Land 300 hits | hits stick the victim to your noodle, then fling them |
 | Cactus | Get hit 200 times | attackers get pricked back |
-| Balloon | Be in 3 Pool Parties | hits float the victim up, then drop them |
+| Balloon | Be in 3 Pool Parties | E: your next hit floats the victim up, then drops them |
 | Anchor | Survive 5 minutes | half knockback; E: unmovable for 4 s |
 | Fire | Reach a 5 streak | hits make the victim panic-run for 2 s |
 | Mirror | End 3 streaks | E: shield that bounces the next hit back |
@@ -250,6 +249,15 @@ rest are passive (they happen when you hit, or get hit).
 Passive gimmicks live in `server/NoodleEffects`, abilities in
 `server/NoodleAbilities`, and the play-time stats in `server/StatsTracker`.
 Tune ranges and timings in `Config.luau`.
+
+**Secret noodles** (7) show as **???** in the menu with only a vague hint
+until someone finds them: Quack (hits turn people into rubber ducks), Coconut
+(a coconut drops on their head), Clown (reversed controls), Lifeguard (E:
+rescue a falling player), Snail (slime that slows), Moon (low gravity for
+you) and **???**, which spreads like an infection (the game's owner starts
+with it) and can **stop time** once every 5 minutes. The real unlock rules
+are in `server/SecretService`. Add badge IDs for them in
+`Config.SecretBadges` (0 = no badge yet).
 
 **Special noodles** unlock by doing something instead of bonking:
 

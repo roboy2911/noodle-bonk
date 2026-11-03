@@ -91,6 +91,34 @@ local function panic(humanoid: Humanoid, duration: number)
 	end)
 end
 
+-- Clown noodle: for a few seconds your movement is flipped. The control
+-- scripts move you as normal, then this runs right after and moves you the
+-- opposite way.
+local reverseUntil = 0
+local REVERSE_STEP = "NoodleReverseControls"
+local reverseBound = false
+
+local function reverseControls(duration: number)
+	reverseUntil = math.max(reverseUntil, os.clock() + duration)
+	if reverseBound then
+		return
+	end
+	reverseBound = true
+	RunService:BindToRenderStep(REVERSE_STEP, Enum.RenderPriority.Input.Value + 1, function()
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if os.clock() >= reverseUntil or not humanoid then
+			RunService:UnbindFromRenderStep(REVERSE_STEP)
+			reverseBound = false
+			return
+		end
+		local move = humanoid.MoveDirection
+		if move.Magnitude > 0.01 then
+			humanoid:Move(-move, false)
+		end
+	end)
+end
+
 local function getUp(humanoid: Humanoid)
 	if humanoid.Health > 0 and humanoid:GetState() == Enum.HumanoidStateType.Physics then
 		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
@@ -109,33 +137,7 @@ local function onKnockback(info: KnockbackInfo)
 	ragdollToken += 1
 
 	local float = info.float
-	local follow = info.follow
-	if follow then
-		-- Stuck to someone's noodle (Gum): stay a set distance in front of
-		-- them, then get flung
-		local token = floatToken
-		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-		task.spawn(function()
-			local endTime = os.clock() + follow.time
-			while os.clock() < endTime and token == floatToken and humanoid.Health > 0 and follow.target.Parent do
-				local anchor = follow.target.CFrame
-				local goal = anchor.Position + anchor.LookVector * follow.distance + Vector3.yAxis * 1.5
-				root.AssemblyLinearVelocity = (goal - root.Position) * 12
-				root.AssemblyAngularVelocity = Vector3.zero
-				RunService.Heartbeat:Wait()
-			end
-			if token == floatToken and humanoid.Health > 0 then
-				root.AssemblyLinearVelocity = follow.fling
-				root.AssemblyAngularVelocity = randomSpin()
-				task.delay(1, function()
-					if token == floatToken then
-						getUp(humanoid)
-					end
-				end)
-			end
-		end)
-		return
-	elseif float then
+	if float then
 		-- Drift along at a steady speed (bubble)
 		local token = floatToken
 		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
@@ -171,6 +173,9 @@ local function onKnockback(info: KnockbackInfo)
 	end
 	if info.panic and info.panic > 0 then
 		panic(humanoid, info.panic)
+	end
+	if info.reverse and info.reverse > 0 then
+		reverseControls(info.reverse)
 	end
 
 	if info.stunTime and info.stunTime > 0 then

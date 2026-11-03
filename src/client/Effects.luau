@@ -312,6 +312,37 @@ function Effects.paintSplat(color: Color3)
 	Debris:AddItem(gui, 2.1)
 end
 
+-- Time Stop (??? noodle). Frozen players see gray and can't move; the one who
+-- stopped time sees a purple tint.
+function Effects.timeStop(duration: number, isCaster: boolean)
+	local lighting = game:GetService("Lighting")
+	local tint = Instance.new("ColorCorrectionEffect")
+	tint.Name = "TimeStopTint"
+	if isCaster then
+		tint.TintColor = Color3.fromRGB(215, 190, 255)
+		tint.Saturation = -0.2
+	else
+		tint.Saturation = -1
+		tint.Contrast = 0.15
+	end
+	tint.Parent = lighting
+	Debris:AddItem(tint, duration)
+	Effects.playSound("Zap")
+
+	if not isCaster then
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			root.Anchored = true -- your client runs your physics, so this holds you still
+			task.delay(duration, function()
+				if root.Parent then
+					root.Anchored = false
+				end
+			end)
+		end
+	end
+end
+
 function Effects.start()
 	Remotes.HitConfirm.OnClientEvent:Connect(function(position: Vector3, noodleId: string, attacker: Player?)
 		local def = Noodles[noodleId]
@@ -343,6 +374,10 @@ function Effects.start()
 			Effects.poof(a)
 		elseif kind == "Pop" and typeof(a) == "Vector3" and type(b) == "table" then
 			Effects.popText(a, tostring(b.text), if typeof(b.color) == "Color3" then b.color else Color3.new(1, 1, 1))
+		elseif kind == "TimeStop" and type(a) == "number" then
+			Effects.timeStop(a, false)
+		elseif kind == "TimeStopCaster" and type(a) == "number" then
+			Effects.timeStop(a, true)
 		elseif kind == "PaintSplat" and typeof(a) == "Color3" then
 			Effects.paintSplat(a)
 		elseif kind == "Tentacle" and typeof(a) == "Instance" and typeof(b) == "Instance" then

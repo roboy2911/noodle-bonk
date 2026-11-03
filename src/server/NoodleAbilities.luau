@@ -25,6 +25,7 @@ export type AbilityContext = {
 	def: Noodles.NoodleDef,
 	tool: Tool,
 	combat: any, -- CombatService (passed in to avoid a circular require)
+	aim: Vector3, -- where the player's camera points (unit vector)
 }
 
 local Abilities: { [string]: (AbilityContext) -> () } = {}
@@ -513,7 +514,7 @@ Abilities.Clone = function(ctx)
 	end
 	decoy.Name = character.Name
 	local direction = aim(ctx)
-	local start = ctx.root.CFrame
+	local start = ctx.root.CFrame + direction * 4 -- a step in front of you
 	decoy:PivotTo(start)
 	decoy.Parent = workspace
 	sound("Poof", start.Position)
@@ -538,7 +539,7 @@ Abilities.Clone = function(ctx)
 			end
 		end
 	end
-	NoodleEffects.decoys[decoy] = explode
+	NoodleEffects.decoys[decoy] = { owner = ctx.player, explode = explode }
 
 	task.spawn(function()
 		local started = os.clock()
@@ -727,35 +728,41 @@ Abilities.Trampoline = function(ctx)
 	end)
 end
 
--- Grapple: shoot your noodle and zip to where it lands. Falling? It aims for the deck.
+-- Grapple: shoot your noodle where you're looking and zip there. If it hits
+-- nothing it still yanks you that way. Falling off? It aims for the deck.
+local GRAPPLE_RANGE = 110
+
 Abilities.Grapple = function(ctx)
-	local direction = aim(ctx)
 	local origin = ctx.root.Position + Vector3.new(0, 1.5, 0)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { ctx.character }
-	local result = workspace:Raycast(origin, (direction + Vector3.new(0, 0.15, 0)).Unit * 90, params)
-	local point: Vector3? = nil
-	if result then
+
+	local point: Vector3
+	local falling = ctx.root.Position.Y < -2
+	local result = workspace:Raycast(origin, ctx.aim * GRAPPLE_RANGE, params)
+	if result and not (falling and result.Instance:IsA("Terrain")) then
 		local hitModel = HitQuery.getCharacter(result.Instance)
 		local hitRoot = hitModel and hitModel:FindFirstChild("HumanoidRootPart")
 		point = if hitRoot and hitRoot:IsA("BasePart") then hitRoot.Position else result.Position
-	elseif ctx.root.Position.Y < -2 then
-		-- Falling off: zip back to the nearest bit of the deck edge
+	elseif falling then
+		-- Zip back to the nearest bit of the deck edge
 		local out = flat(ctx.root.Position)
-		if out.Magnitude > 1 then
-			point = out.Unit * (Config.ArenaDiameter / 2 - 6) + Vector3.new(0, 3, 0)
-		end
+		local toward = if out.Magnitude > 1 then out.Unit else Vector3.new(1, 0, 0)
+		point = toward * (Config.ArenaDiameter / 2 - 6) + Vector3.new(0, 3, 0)
+	else
+		point = origin + ctx.aim * 45 -- nothing to grab: a shorter yank that way
 	end
-	if not point then
+
+	local delta = point - ctx.root.Position
+	if delta.Magnitude < 2 then
 		return
 	end
-	local delta = point - ctx.root.Position
 	sound("Throw", origin)
 	Remotes.AbilityFx:FireAllClients("Rope", ctx.root, point)
 	Remotes.Knockback:FireClient(ctx.player, {
-		velocity = delta.Unit * math.clamp(delta.Magnitude * 2.2, 50, 150)
-			+ Vector3.yAxis * (15 + math.max(0, delta.Y) * 0.6),
+		velocity = delta.Unit * math.clamp(delta.Magnitude * 2.4, 55, 160)
+			+ Vector3.yAxis * (12 + math.max(0, delta.Y) * 0.5),
 		ragdollTime = 0,
 	})
 end
@@ -806,6 +813,98 @@ Abilities.Puff = function(ctx)
 					character:ScaleTo(character:GetScale() / 1.6)
 				end)
 			end
+		end
+	end)
+end
+
+-- Balloon: your next hit floats the victim up (see NoodleEffects "Balloon").
+Abilities.ArmBalloon = function(ctx)
+	local token = os.clock()
+	ctx.character:SetAttribute("BalloonReady", token)
+	NoodleEffects.glow(ctx.character, "BalloonReadyGlow", Color3.fromRGB(255, 90, 90), 15, 0.7)
+	sound("Boing", ctx.root.Position)
+	task.delay(15, function()
+		-- not used within 15 seconds: put it away
+		if ctx.character.Parent and ctx.character:GetAttribute("BalloonReady") == token then
+			ctx.character:SetAttribute("BalloonReady", nil)
+		end
+	end)
+end
+
+-- Lifeguard: throw a life ring to the nearest player falling off the deck and
+-- pull them back to safety (so nobody gets the bonk).
+Abilities.LifeRing = function(ctx)
+	local best, bestRoot, bestDistance = nil, nil, 120
+	for _, target in everyone(ctx.character) do
+		local _, targetRoot = ctx.combat.getLiving(target)
+		if targetRoot and targetRoot.Position.Y < -1 and not target:GetAttribute("Bonked") then
+			local distance = (targetRoot.Position - ctx.root.Position).Magnitude
+			if distance < bestDistance then
+				best, bestRoot, bestDistance = target, targetRoot, distance
+			end
+		end
+	end
+	if not best or not bestRoot then
+		NoodleEffects.pop(ctx.root.Position + Vector3.new(0, 4, 0), "Nobody to save!", Color3.fromRGB(255, 255, 255))
+		return
+	end
+	local out = flat(bestRoot.Position)
+	local safe = (if out.Magnitude > 1 then out.Unit else Vector3.new(1, 0, 0)) * (Config.ArenaDiameter / 2 - 12)
+		+ Vector3.new(0, 4, 0)
+	local delta = safe - bestRoot.Position
+	ctx.combat.clearHits(best) -- saved: whoever knocked them off doesn't get the bonk
+	Remotes.AbilityFx:FireAllClients("Rope", ctx.root, bestRoot.Position)
+	sound("Throw", ctx.root.Position)
+	ctx.combat.applyKnockback(best, {
+		velocity = flat(delta).Unit * math.clamp(flat(delta).Magnitude * 2, 30, 90)
+			+ Vector3.yAxis * (40 + math.max(0, delta.Y) * 1.2),
+		ragdollTime = 0,
+	})
+	NoodleEffects.pop(bestRoot.Position + Vector3.new(0, 4, 0), "SAVED!", Color3.fromRGB(255, 80, 80))
+end
+
+-- ???: TIME STOP. Everyone else freezes for a few seconds; hits you land on
+-- them are saved up and all hit at once when time starts again.
+Abilities.TimeStop = function(ctx)
+	local duration = Config.TimeStopTime
+	local frozenUntil = serverNow() + duration
+	local frozen: { Model } = {}
+	local anchoredRoots: { BasePart } = {}
+	for _, target in everyone(ctx.character) do
+		local _, targetRoot = ctx.combat.getLiving(target)
+		if targetRoot then
+			target:SetAttribute("TimeFrozenUntil", frozenUntil)
+			table.insert(frozen, target)
+			if not Players:GetPlayerFromCharacter(target) and not targetRoot.Anchored then
+				targetRoot.Anchored = true -- dummies and the duck: the server holds them still
+				table.insert(anchoredRoots, targetRoot)
+			end
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other ~= ctx.player then
+			Remotes.AbilityFx:FireClient(other, "TimeStop", duration)
+		end
+	end
+	Remotes.AbilityFx:FireClient(ctx.player, "TimeStopCaster", duration)
+	sound("Zap", ctx.root.Position)
+	NoodleEffects.pop(ctx.root.Position + Vector3.new(0, 5, 0), "TIME STOP!", Color3.fromRGB(190, 130, 255))
+
+	task.delay(duration, function()
+		for _, root in anchoredRoots do
+			if root.Parent then
+				root.Anchored = false
+			end
+		end
+		for _, target in frozen do
+			if target.Parent then
+				target:SetAttribute("TimeFrozenUntil", nil)
+			end
+		end
+		-- a moment for clients to let go of their characters, then everything hits
+		task.wait(0.1)
+		for _, target in frozen do
+			ctx.combat.releaseFrozen(target)
 		end
 	end)
 end

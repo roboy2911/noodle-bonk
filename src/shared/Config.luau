@@ -97,9 +97,8 @@ local Config = {
 	CannonSpeed = 150, -- Water Cannon blast
 	CannonRange = 90,
 	BoomerangRange = 40, -- how far out the Boomerang flies before coming back
-	ShrinkTime = 6,
-	ShrinkKnockback = 2, -- shrunk players fly this many times further
-	StickyTime = 1.5, -- Gum: how long the victim stays stuck
+	ShrinkTime = 4,
+	ShrinkKnockback = 1.3, -- shrunk players fly this many times further
 	BalloonTime = 2,
 	BurnTime = 2,
 	AnchorTime = 4,
@@ -113,6 +112,23 @@ local Config = {
 	SquawkRadius = 20,
 	GravityRadius = 26,
 	CloneTime = 6,
+
+	-- Secret noodles (see server/SecretService)
+	TimeStopTime = 3, -- ??? noodle: seconds everyone else is frozen
+	DuckFormTime = 5, -- Quack: seconds as a rubber duck
+	ReverseTime = 3, -- Clown: seconds of reversed controls
+	SlimeTime = 8, -- Snail: how long a slime puddle lasts
+	MoonGravity = 0.4, -- Moon: your gravity while holding it (1 = normal)
+	-- Badge IDs for each secret noodle (create them on Creator Hub, 0 = none yet)
+	SecretBadges = {
+		Quack = 0,
+		Coconut = 0,
+		Clown = 0,
+		Lifeguard = 0,
+		Snail = 0,
+		Moon = 0,
+		Mystery = 0,
+	} :: { [string]: number },
 
 	-- Duck jar and Giant Rubber Duck boss (each server has its own). Every bonk
 	-- drops a duck in the jar; a full jar spawns the boss. Bonk it into the

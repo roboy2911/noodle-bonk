@@ -122,7 +122,9 @@ local function onAbilityAction(_: string, inputState: Enum.UserInputState, _: In
 	end
 	lastAbility = now
 
-	Remotes.UseAbility:FireServer()
+	-- Send where the camera points, for aimed abilities (Grapple)
+	local camera = workspace.CurrentCamera
+	Remotes.UseAbility:FireServer(if camera then camera.CFrame.LookVector else nil)
 	return Enum.ContextActionResult.Sink
 end
 

@@ -29,6 +29,14 @@ Unlocks.STATS = {
 	"DuckHits",
 	"DaysPlayed",
 	"MaxSoaks",
+	-- secret noodles (see server/SecretService)
+	"SecretQuack",
+	"SecretCoconut",
+	"TornadoBonked",
+	"SecretLifeguard",
+	"SecretSnail",
+	"SecretMoon",
+	"Infected",
 	"Tutorial",
 	"LastDay",
 }
@@ -120,6 +128,9 @@ function Unlocks.progress(def: NoodleDef, stats: Stats): number
 	if not requirement then
 		return 1
 	end
+	if def.Secret then
+		return 0 -- no hints from a progress bar
+	end
 	return math.clamp((stats[requirement.Stat] or 0) / requirement.Amount, 0, 1)
 end
 
@@ -128,6 +139,9 @@ function Unlocks.describe(def: NoodleDef, stats: Stats): string
 	local requirement = def.Unlock
 	if not requirement then
 		return "Free"
+	end
+	if def.Secret then
+		return def.Hint or "..." -- secrets only ever show their hint
 	end
 	local describe = DESCRIPTIONS[requirement.Stat]
 	local text = if describe then describe(requirement.Amount) else `{requirement.Stat}: {requirement.Amount}`

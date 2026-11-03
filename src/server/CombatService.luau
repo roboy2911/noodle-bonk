@@ -227,9 +227,43 @@ local function pushNpc(target: Model, humanoid: Humanoid, root: BasePart, info: 
 	end
 end
 
+-- Time Stop (??? noodle) -----------------------------------------------------------
+
+local pendingKnockback: { [Model]: KnockbackInfo } = setmetatable({}, { __mode = "k" }) :: any
+
+function CombatService.isTimeFrozen(model: Model): boolean
+	local frozenUntil = model:GetAttribute("TimeFrozenUntil")
+	return type(frozenUntil) == "number" and frozenUntil > serverNow()
+end
+
+-- Hits on a frozen target are saved up and all land at once when time resumes.
+local function stash(target: Model, info: KnockbackInfo)
+	local saved = pendingKnockback[target]
+	if not saved then
+		pendingKnockback[target] = table.clone(info)
+		return
+	end
+	saved.velocity += info.velocity
+	saved.ragdollTime = math.max(saved.ragdollTime, info.ragdollTime)
+	saved.shake = math.max(saved.shake or 0, info.shake or 0)
+end
+
+function CombatService.releaseFrozen(target: Model)
+	local saved = pendingKnockback[target]
+	pendingKnockback[target] = nil
+	if saved and target.Parent then
+		saved.ragdollTime = math.max(saved.ragdollTime, 1.2)
+		CombatService.applyKnockback(target, saved)
+	end
+end
+
 function CombatService.applyKnockback(target: Model, info: KnockbackInfo)
 	if target:GetAttribute("NoKnockback") then
 		return -- can't be pushed around (the duck boss)
+	end
+	if CombatService.isTimeFrozen(target) then
+		stash(target, info)
+		return
 	end
 	local anchoredUntil = target:GetAttribute("AnchoredUntil")
 	if type(anchoredUntil) == "number" and anchoredUntil > serverNow() then
@@ -388,7 +422,7 @@ local function onNoodleHit(player: Player, target: unknown, hitPos: unknown, dir
 	local claimedSpeed = speed :: number
 
 	local character = player.Character
-	if not character or victim == character then
+	if not character or victim == character or CombatService.isTimeFrozen(character) then
 		return
 	end
 	local _, root = CombatService.getLiving(character)
@@ -455,9 +489,9 @@ local function onNoodleHit(player: Player, target: unknown, hitPos: unknown, dir
 	CombatService.strike(player, victim, targetRoot, launchDirection, power, def.Upward or Config.BaseUpward, def)
 end
 
-local function onUseAbility(player: Player)
+local function onUseAbility(player: Player, aim: unknown)
 	local character = player.Character
-	if not character then
+	if not character or CombatService.isTimeFrozen(character) then
 		return
 	end
 	local _, root = CombatService.getLiving(character)
@@ -479,6 +513,12 @@ local function onUseAbility(player: Player)
 	lastAbility[player] = now
 	DataService.increment(player, "AbilitiesUsed", 1)
 
+	-- Where the player's camera is pointing (aimed abilities like Grapple)
+	local aimDirection = root.CFrame.LookVector
+	if typeof(aim) == "Vector3" and aim.Magnitude > 0.5 and aim.Magnitude < 1.5 then
+		aimDirection = aim.Unit
+	end
+
 	CombatService.endSpawnProtection(character)
 	ability({
 		player = player,
@@ -487,6 +527,7 @@ local function onUseAbility(player: Player)
 		def = def,
 		tool = tool,
 		combat = CombatService,
+		aim = aimDirection,
 	})
 end
 

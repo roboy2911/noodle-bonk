@@ -12,7 +12,7 @@ export type KnockbackInfo = {
 	float: { velocity: Vector3, time: number }?, -- hold this velocity for a while (bubble)
 	shake: number?, -- camera shake strength
 	spin: Vector3?, -- spin the body this fast (Fish noodle)
-	follow: { target: BasePart, distance: number, time: number, fling: Vector3 }?, -- stuck to a noodle (Gum), then flung
+	reverse: number?, -- reversed controls for this long (Clown noodle)
 	panic: number?, -- run around out of control for this long (Fire noodle)
 }
 
@@ -31,6 +31,7 @@ local EVENT_NAMES = {
 	"LuckyNoodle",
 	"DuckBoss",
 	"TutorialDone",
+	"SecretNews",
 }
 local FUNCTION_NAMES = { "AdminRequest" }
 
@@ -69,7 +70,7 @@ return {
 	-- client -> server: (target: Model, hitPosition: Vector3, direction: Vector3, speed: number)
 	-- the attacker's noodle touched someone
 	NoodleHit = get("NoodleHit"),
-	-- client -> server: ()
+	-- client -> server: (aim: Vector3?) where the camera points, for aimed abilities
 	UseAbility = get("UseAbility"),
 	-- server -> victim's client: (info: KnockbackInfo)
 	Knockback = get("Knockback"),
@@ -93,6 +94,8 @@ return {
 	DuckBoss = get("DuckBoss"),
 	-- client -> server: () the player finished or skipped the tutorial
 	TutorialDone = get("TutorialDone"),
+	-- server -> all clients: ("Found", name) or ("Infected", name, count?) secret noodle news
+	SecretNews = get("SecretNews"),
 	-- client -> server: (command: string, args: { [string]: any }) -> (success: boolean, message: string)
 	AdminRequest = getFunction("AdminRequest"),
 }
