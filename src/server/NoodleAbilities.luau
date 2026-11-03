@@ -831,6 +831,19 @@ Abilities.ArmBalloon = function(ctx)
 	end)
 end
 
+-- Clown: your next hit reverses the victim's controls (see NoodleEffects "Reverse").
+Abilities.ArmReverse = function(ctx)
+	local token = os.clock()
+	ctx.character:SetAttribute("ReverseReady", token)
+	NoodleEffects.glow(ctx.character, "ReverseReadyGlow", Color3.fromRGB(255, 70, 70), 15, 0.7)
+	sound("Squeak", ctx.root.Position)
+	task.delay(15, function()
+		if ctx.character.Parent and ctx.character:GetAttribute("ReverseReady") == token then
+			ctx.character:SetAttribute("ReverseReady", nil)
+		end
+	end)
+end
+
 -- Lifeguard: throw a life ring to the nearest player falling off the deck and
 -- pull them back to safety (so nobody gets the bonk).
 Abilities.LifeRing = function(ctx)

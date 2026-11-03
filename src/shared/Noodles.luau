@@ -544,7 +544,7 @@ local Noodles: { [string]: NoodleDef } = {
 	Clown = {
 		Id = "Clown",
 		DisplayName = "Clown Noodle",
-		Description = "Hits reverse your victim's controls for 3 seconds. Left is right, forward is back!",
+		Description = "Press E, then your next hit reverses your victim's controls for 3 seconds!",
 		Color = Color3.fromRGB(255, 70, 70),
 		Length = 7,
 		Thickness = 0.85,
@@ -553,6 +553,8 @@ local Noodles: { [string]: NoodleDef } = {
 		Cooldown = 0.5,
 		SoakGain = 12,
 		Gimmick = "Reverse",
+		Ability = "ArmReverse",
+		AbilityCooldown = 8,
 		Secret = true,
 		Hint = "Get bonked by the best.",
 		Unlock = { Stat = "TornadoBonked", Amount = 10 },

@@ -315,6 +315,12 @@ function NoodleEffects.shape(
 	elseif gimmick == "Coconut" then
 		NoodleEffects.dropCoconut(attacker, target)
 	elseif gimmick == "Reverse" then
+		-- Only the hit right after pressing E
+		local attackerCharacter = attacker and attacker.Character
+		if not attackerCharacter or not attackerCharacter:GetAttribute("ReverseReady") then
+			return
+		end
+		attackerCharacter:SetAttribute("ReverseReady", nil)
 		if isPlayer then
 			info.reverse = Config.ReverseTime
 			NoodleEffects.pop(targetRoot.Position + Vector3.new(0, 4, 0), "REVERSED!", Color3.fromRGB(255, 70, 70))
