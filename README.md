@@ -132,6 +132,8 @@ src/
     AdminPanel          admin panel UI
     AdminMovement       fly and noclip for admins
     ClipMode            clean UI-free cinematic view + highlight log for recording
+    Tutorial            first-time tutorial
+    LikePrompt          like & favorite reminder after 5 minutes
 ```
 
 ## How a hit works
@@ -227,7 +229,9 @@ Noodle Bot spawns and fights you. It's removed as soon as a second player
 joins, and comes back if you're alone again. Turn it off with
 `Config.SoloDummy = false`.
 
-Bonks on practice dummies count toward unlocks **only in Studio**
+Bonks on **Noodle Bot** (the solo dummy) always count, so a player who's
+alone in a server can still earn Bonks and unlock noodles. Bonks on other
+practice dummies count toward unlocks **only in Studio**
 (`Config.DummyBonksCountInStudio`), so nobody can farm them in a live game.
 
 ### Adding a noodle
@@ -275,6 +279,16 @@ unpublished Studio place they only show in your own server.
 Risky buttons (kick, ban, reset data, respawn everyone, shut down) need a
 second click within 3 seconds. Bans use Roblox's ban API, which only works in
 a live game, not in Studio.
+
+## New players
+
+- **Tutorial:** the first time someone plays, a short guide walks them
+  through swinging, hitting Noodle Bot (outlined in gold) and bonking it
+  into the pool. Each step finishes when they actually do it, and there's a
+  Skip button. It's saved as the `Tutorial` stat: set it to 0 from the admin
+  panel to see it again.
+- **Like & favorite reminder:** after 5 minutes of play, a friendly pop-up
+  asks once per session for a Like and a Favorite (`client/LikePrompt`).
 
 ## Clip mode (recording videos)
 

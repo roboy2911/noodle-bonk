@@ -27,6 +27,7 @@ local EVENT_NAMES = {
 	"PoolParty",
 	"LuckyNoodle",
 	"DuckBoss",
+	"TutorialDone",
 }
 local FUNCTION_NAMES = { "AdminRequest" }
 
@@ -87,6 +88,8 @@ return {
 	LuckyNoodle = get("LuckyNoodle"),
 	-- server -> all clients: (event: "Spawned" | "Defeated" | "Left", names: { string }?) duck boss news
 	DuckBoss = get("DuckBoss"),
+	-- client -> server: () the player finished or skipped the tutorial
+	TutorialDone = get("TutorialDone"),
 	-- client -> server: (command: string, args: { [string]: any }) -> (success: boolean, message: string)
 	AdminRequest = getFunction("AdminRequest"),
 }

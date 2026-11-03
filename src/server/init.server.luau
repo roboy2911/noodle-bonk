@@ -31,6 +31,12 @@ if not Config.BuildThumbnailScene then
 	Environment.setup()
 end
 DataService.start()
+-- Remember (saved) that the player finished the tutorial, so it only shows once
+require(ReplicatedStorage.Shared.Remotes).TutorialDone.OnServerEvent:Connect(function(player)
+	if DataService.getStat(player, "Tutorial") < 1 then
+		DataService.setStat(player, "Tutorial", 1)
+	end
+end)
 Streaks.start()
 CombatService.start()
 BonkTracker.start(CombatService)

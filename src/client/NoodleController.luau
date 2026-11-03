@@ -31,6 +31,7 @@ local currentTool: Tool? = nil
 local currentDef: NoodleDef? = nil
 local lastAbility = -math.huge
 local lastWhoosh = 0
+local lastFastSwing = 0
 local localHits: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 
 local overlap = OverlapParams.new()
@@ -90,6 +91,9 @@ local function onLocalStep(visual: NoodleVisuals.Visual, dt: number)
 		end
 	end
 
+	if fastest >= Config.WhooshSpeed then
+		lastFastSwing = now
+	end
 	if fastest >= Config.WhooshSpeed and now - lastWhoosh > WHOOSH_GAP then
 		lastWhoosh = now
 		Effects.playSound("Swing")
@@ -123,6 +127,11 @@ local function onAbilityAction(_: string, inputState: Enum.UserInputState, _: In
 end
 
 -- Name of the held noodle's ability (or nil) and how ready it is, 0 to 1.
+-- When the local player last swung fast (the tutorial checks this).
+function NoodleController.lastFastSwingTime(): number
+	return lastFastSwing
+end
+
 function NoodleController.getAbilityState(): (string?, number)
 	local def = currentDef
 	if not def or not def.Ability then

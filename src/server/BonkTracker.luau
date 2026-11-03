@@ -73,8 +73,12 @@ local function bonk(character: Model, root: BasePart)
 	-- A dummy did it (dummy fight mode): show its name, no stats or streak for it
 	local dummyName = if record and not record.attacker then record.attackerName else nil
 
-	-- Dummy bonks only count in Studio, so nobody can farm unlocks on them live
-	local counts = victim ~= nil or (RunService:IsStudio() and Config.DummyBonksCountInStudio)
+	-- Dummy bonks only count in Studio, so nobody can farm unlocks on them live.
+	-- The solo dummy (Noodle Bot, there when you're alone) always counts, so a
+	-- player alone in a server can still earn Bonks and unlock noodles.
+	local counts = victim ~= nil
+		or character:GetAttribute("SoloDummy") == true
+		or (RunService:IsStudio() and Config.DummyBonksCountInStudio)
 	if attacker and counts then
 		-- 2x Bonks pass and Pool Parties make a bonk worth more
 		DataService.increment(attacker, "Bonks", MonetizationService.bonkValue(attacker))
